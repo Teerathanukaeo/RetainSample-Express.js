@@ -8,8 +8,8 @@ const cron = require("node-cron");
 app.use(bodyParser.json());
 app.use(cors()); // Enable CORS
 app.use(express.json());
-
-// ตั้งค่าการเชื่อมต่อ SQL Server
+git 
+// ตั้งค่าการเชื่อมต่อ SQL Server1234
 const dbConfig = {
     user: 'sa',
     password: 'Automatic',
