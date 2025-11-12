@@ -81,7 +81,7 @@ router.get('/Log', async (req, res) => {
     }
 });
 
-// API สำหรับการอัปเดตปริมาณใน E_StockMat
+// API สำหรับการอัปเดตปริมาณใน E_StockMat123
 router.put('/Mat/:Mat', async (req, res) => {
     const mat = req.params.Mat;
     const { Quantity } = req.body;
