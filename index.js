@@ -1,48 +1,47 @@
+// ==================== Import Packages ====================
 const express = require('express');
 const bodyParser = require('body-parser');
 const sql = require('mssql');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const app = express();
 const cron = require("node-cron");
+const net = require('net');
+
+// ==================== Express Setup ====================
+const app = express();
+app.use(cors());
 app.use(bodyParser.json());
-app.use(cors()); // Enable CORS
-app.use(express.json());
-git 
-// ตั้งค่าการเชื่อมต่อ SQL Server1234
+
+// ==================== Database Config ====================
 const dbConfig = {
     user: 'sa',
     password: 'Automatic',
     server: '172.23.10.39',
     database: 'ScadaReport',
     options: {
-        encrypt: true, // สำหรับ Azure SQL Server, ตั้งค่าเป็น true
-        trustServerCertificate: true // ใช้ในกรณีการเชื่อมต่อกับ SQL Server ท้องถิ่น
+        encrypt: true,
+        trustServerCertificate: true
     }
 };
 
-// เชื่อมต่อกับฐานข้อมูล
+// Connect to Database
 sql.connect(dbConfig, (err) => {
-    if (err) {
-        console.error('Database connection failed: ', err);
-    } else {
-        console.log('Connected to the database');
-    }
+    if (err) console.error('Database connection failed: ', err);
+    else console.log('Connected to the database');
 });
 
-// API สำหรับการ login
+// ==================== API Routes ====================
+
+// -------- Login API --------
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        // ใช้ parameterized query เพื่อป้องกัน SQL Injection
         const result = await sql.query`
             SELECT * FROM E_StockUser 
             WHERE Username = ${username} AND Password = ${password}
         `;
 
-        // ตรวจสอบว่ามีผู้ใช้งานที่ตรงกับ username และ password ที่ระบุหรือไม่
         if (result.recordset.length > 0) {
-            // สร้างตัวแปร user ที่มีข้อมูลที่จำเป็นสำหรับการส่งกลับไปยัง client
             const user = {
                 Id: result.recordset[0].Id,
                 Username: result.recordset[0].Username,
@@ -51,216 +50,94 @@ app.post('/login', async (req, res) => {
                 Branch: result.recordset[0].Branch,
                 Roleid: result.recordset[0].Roleid
             };
-
-            // ส่งข้อมูลผู้ใช้ที่ถูกต้องกลับไปยัง client
             res.json({ success: true, message: 'Login successful', user });
         } else {
-            // ไม่พบผู้ใช้หรือรหัสผ่านไม่ถูกต้อง
             res.json({ success: false, message: 'Invalid username or password' });
         }
     } catch (err) {
-        // หากเกิดข้อผิดพลาดในการสอบถามฐานข้อมูล
         console.error('Error executing SQL query:', err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// API สำหรับดึงข้อมูลจาก E_StockMat
+// -------- GET APIs --------
 app.get('/GETNAME', async (req, res) => {
-    
     try {
-        console.log("✅ GET /Chorm");
         const { Name } = req.query;
-        console.log(req.query);
         const result = await sql.query`SELECT * FROM SOI8_RetainChorme WHERE Name = ${Name}`;
-        if (result.recordset.length > 0) {
-            console.log(result.recordset);
-            res.json(result.recordset);
-        } else {
-            res.status(404).json({ message: 'No data found' });
-        }
+        if (result.recordset.length > 0) res.json(result.recordset);
+        else res.status(404).json({ message: 'No data found' });
     } catch (err) {
         res.status(500).send(err);
     }
 });
 
 app.get('/GETUNEG', async (req, res) => {
-    
     try {
-        console.log("✅ GET /Uneq");
         const { Uneq } = req.query;
-        console.log(req.query);
         const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE Uneg = ${Uneq}`;
-        if (result.recordset.length > 0) {
-            console.log(result.recordset);
-            res.json(result.recordset);
-        } else {
-            res.status(404).json({ message: 'No data found' });
-        }
+        if (result.recordset.length > 0) res.json(result.recordset);
+        else res.status(404).json({ message: 'No data found' });
     } catch (err) {
         res.status(500).send(err);
     }
 });
 
 app.get('/GETSAMP1', async (req, res) => {
-    
     try {
-        console.log("✅ GET /SAMP1");
-        console.log(req.query);
         const Status = "Inprocess";
         const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE Status = ${Status} order by Id desc`;
-        if (result.recordset.length > 0) {
-            console.log(result.recordset);
-            res.json(result.recordset);
-        } else {
-            res.status(404).json({ message: 'No data found' });
-        }
+        if (result.recordset.length > 0) res.json(result.recordset);
+        else res.status(404).json({ message: 'No data found' });
     } catch (err) {
         res.status(500).send(err);
     }
 });
 
 app.get('/GETSAMP2', async (req, res) => {
-    
-try {
-    console.log("✅ GET /SAMP2");
-
-    // ✅ ประกาศตัวแปร Test เป็นวันที่วันนี้ในรูปแบบ YYYY-MM-DD
-    const today = new Date();
-    const Test = today.toISOString().split('T')[0]; // เช่น "2026-09-30"
-
-    console.log("Test =", Test);
-
-    // ยิง SQL โดยใช้ตัวแปร Test
-    const result = await sql.query`
-        SELECT * FROM SOI8_RetainSample 
-        WHERE Test1 = ${Test} OR Test2 = ${Test} OR Test3 = ${Test} OR Test4 = ${Test}
-    `;
-
-    if (result.recordset.length > 0) {
-        console.log(result.recordset);
-        res.json(result.recordset);
-    } else {
-        res.status(404).json({ message: 'No data found' });
+    try {
+        const today = new Date();
+        const Test = today.toISOString().split('T')[0];
+        const result = await sql.query`
+            SELECT * FROM SOI8_RetainSample 
+            WHERE Test1 = ${Test} OR Test2 = ${Test} OR Test3 = ${Test} OR Test4 = ${Test}
+        `;
+        if (result.recordset.length > 0) res.json(result.recordset);
+        else res.status(404).json({ message: 'No data found' });
+    } catch (err) {
+        res.status(500).send(err);
     }
-} catch (err) {
-    console.error(err);
-    res.status(500).send(err);
-}
-
 });
 
 app.get('/GETSAMP3', async (req, res) => {
-    
-try {
-    console.log("✅ GET /SAMP3");
-
-    // ✅ ประกาศตัวแปร Expire เป็นวันที่วันนี้ (รูปแบบ YYYY-MM-DD)
-    const today = new Date();
-    const Expire = today.toLocaleDateString('sv-SE'); // เช่น "2026-09-30"
-
-    console.log("Expire =", Expire);
-
-    // 🔍 คิวรีข้อมูลจากฐานข้อมูล
-    const result = await sql.query`
-        SELECT * FROM SOI8_RetainSample 
-        WHERE ExpireDate = ${Expire}
-    `;
-
-    if (result.recordset.length > 0) {
-        console.log(result.recordset);
-        res.json(result.recordset);
-    } else {
-        res.status(404).json({ message: 'No data found' });
+    try {
+        const today = new Date();
+        const Expire = today.toLocaleDateString('sv-SE');
+        const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE ExpireDate = ${Expire}`;
+        if (result.recordset.length > 0) res.json(result.recordset);
+        else res.status(404).json({ message: 'No data found' });
+    } catch (err) {
+        res.status(500).send(err);
     }
-} catch (err) {
-    console.error(err);
-    res.status(500).send(err);
-}
-
 });
 
+// -------- POST SENTDATA --------
 app.post('/SENTDATA', async (req, res) => {
     try {
-        console.log("✅ POST /History called");
+        const p = req.body;
+        if (!p.ProductName || !p.ChemicalType) return res.status(400).json({ message: "Missing required fields" });
 
-        const {
-            Uneg,
-            ProductName,
-            ChemicalType,
-            ChemicalPhysic,
-            ProductionDate,
-            Alert,
-            ExpireDate,
-            LocationKeep,
-            LocationWaste,
-            Pcs,
-            InputData,
-            Test1,
-            AlertTest1,
-            Test2,
-            AlertTest2,
-            Test3,
-            AlertTest3,
-            Test4,
-            AlertTest4,
-            Status
-
-        } = req.body;
-
-        // ตรวจสอบว่าข้อมูลครบไหม
-        if (!ProductName || !ChemicalType) {
-            return res.status(400).json({ message: "Missing required fields" });
-        }
-
-        const result = await sql.query`
+        await sql.query`
             INSERT INTO [ScadaReport].[dbo].[SOI8_RetainSample]
-            (
-                [Uneg],
-                [ProductName],
-                [ChemicalType],
-                [ChemicalPhysic],
-                [ProductionDate],
-                [Alert],
-                [ExpireDate],
-                [LocationKeep],
-                [LocationWaste],
-                [Pcs],
-                [InputData],
-                [Test1],
-                [AlertTest1],
-                [Test2],
-                [AlertTest2],
-                [Test3],
-                [AlertTest3],
-                [Test4],
-                [AlertTest4],
-                [Status]
-            )
+            ([Uneg],[ProductName],[ChemicalType],[ChemicalPhysic],[ProductionDate],[Alert],
+             [ExpireDate],[LocationKeep],[LocationWaste],[Pcs],[InputData],
+             [Test1],[AlertTest1],[Test2],[AlertTest2],[Test3],[AlertTest3],[Test4],[AlertTest4],[Status])
             VALUES (
-                ${Uneg},
-                ${ProductName},
-                ${ChemicalType},
-                ${ChemicalPhysic},
-                ${ProductionDate},
-                ${Alert},
-                ${ExpireDate},
-                ${LocationKeep},
-                ${LocationWaste},
-                ${Pcs},
-                ${InputData},
-                ${Test1},
-                ${AlertTest1},
-                ${Test2},
-                ${AlertTest2},
-                ${Test3},
-                ${AlertTest3},
-                ${Test4},
-                ${AlertTest4},
-                ${Status}
+                ${p.Uneg},${p.ProductName},${p.ChemicalType},${p.ChemicalPhysic},${p.ProductionDate},
+                ${p.Alert},${p.ExpireDate},${p.LocationKeep},${p.LocationWaste},${p.Pcs},${p.InputData},
+                ${p.Test1},${p.AlertTest1},${p.Test2},${p.AlertTest2},${p.Test3},${p.AlertTest3},${p.Test4},${p.AlertTest4},${p.Status}
             );
         `;
-
         res.status(201).json({ message: "✅ Data inserted successfully" });
     } catch (err) {
         console.error("❌ Insert error:", err);
@@ -268,50 +145,234 @@ app.post('/SENTDATA', async (req, res) => {
     }
 });
 
-// ==================== ตั้งค่า Microsoft 365 ====================
+// ==================== Print API ====================
+app.post('/print', async (req, res) => {
+  try {
+    const p = req.body;
+    if (!p.Uneg) return res.status(400).json({ message: "Missing Uneg" });
+
+    const zpl = `
+^XA
+^PW1116
+^LL780
+^CF0,45
+
+// ==========================
+// วาดตาราง
+// ==========================
+^FO15,15^GB1086,750,5^FS \\Main
+^FO15,15^GB635,220,5^FS \\productname
+^FO645,15^GB455,150,5^FS \\chemical type
+^FO645,160^GB455,160,5^FS \\input data
+^FO15,665^GB317.5,100,5^FS
+^FO15,665^GB635,100,5^FS
+^FO15,540^GB317.5,130,5^FS
+^FO15,540^GB635,130,5^FS
+^FO645,314^GB455,450,5^FS \\qr code
+
+// ==========================
+// วางข้อความฟิลด์
+// ==========================
+^CF0,30,30
+^FO25,30^FDProductName^FS
+^FO655,30^FDChemicalType^FS
+^FO655,175^FDInput by^FS
+^FO25,680^FDProductionDate^FS
+^FO340,680^FDExpireDate^FS
+^FO25,555^FDLocationKeep^FS
+^FO340,555^FDLocationWaste^FS
+
+^FO710,330
+^BQN,2,16
+^FDLA,${p.Uneg}^FS
+
+^CF0,35                
+^FO730,700               
+^FD${p.Uneg}^FS
+
+// ==========================
+// วางข้อมูล Item
+// ==========================
+^CF0,35
+^FO70,725^FD${p.ProductionDate || '-'}^FS
+^FO390,725^FD${p.ExpireDate || '-'}^FS
+^FO70,620^FD${p.LocationKeep || '-'}^FS
+^CF0,35
+^FO370,590
+^FB250,2,0,L,0
+^FD${p.LocationWaste || '-'}^FS
+
+^CF0,60 
+^FO40,100^FD${p.ProductName || '-'}^FS
+^FO710,100^FD${p.ChemicalType|| '-'}^FS
+^FO710,255^FD${p.InputData|| '-'}^FS       
+
+// ==========================
+// เพิ่ม Test 90/180/270/365 Day
+// ==========================
+^CF0,35
+^FO150,300^FDTest 90 Day: ${p.Test1 || '-'}^FS
+^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
+^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
+^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
+
+^XZ
+`;
+
+
+    // 🔹 พิมพ์ ZPL string ลง console ก่อนส่ง
+    console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zpl);
+
+    const PRINTER_IP = "172.26.20.4";
+    const PRINTER_PORT = 9100;
+    const client = new net.Socket();
+
+    client.connect(PRINTER_PORT, PRINTER_IP, () => {
+      client.write(zpl);
+      client.end();
+      console.log(`✅ ส่ง ZPL ไปเครื่องพิมพ์สำเร็จ: ${p.Uneg}`);
+      res.status(200).json({ success: true, message: "Printed successfully", Uneg: p.Uneg });
+    });
+
+    client.on("error", (err) => {
+      console.error("❌ ส่ง ZPL ไม่สำเร็จ:", err);
+      res.status(500).json({ success: false, message: err.message });
+    });
+
+  } catch (err) {
+    console.error("❌ /print error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/print_Special', async (req, res) => {
+  try {
+    const p = req.body;
+    if (!p.Uneg) return res.status(400).json({ message: "Missing Uneg" });
+
+    const zpl = `
+^XA
+^PW1116
+^LL780
+^CF0,45
+
+// ==========================
+// วาดตาราง
+// ==========================
+^FO15,15^GB1086,750,5^FS \\Main
+^FO15,15^GB635,220,5^FS \\productname
+^FO645,15^GB455,150,5^FS \\chemical type
+^FO645,160^GB455,160,5^FS \\input data
+^FO15,665^GB317.5,100,5^FS
+^FO15,665^GB635,100,5^FS
+^FO15,540^GB317.5,130,5^FS
+^FO15,540^GB635,130,5^FS
+^FO645,314^GB455,450,5^FS \\qr code
+
+// ==========================
+// วางข้อความฟิลด์
+// ==========================
+^CF0,30,30
+^FO25,30^FDProductName^FS
+^FO655,30^FDChemicalType^FS
+^FO655,175^FDInput by^FS
+^FO25,680^FDProductionDate^FS
+^FO340,680^FDExpireDate^FS
+^FO25,555^FDLocationKeep^FS
+^FO340,555^FDLocationWaste^FS
+
+^FO710,330
+^BQN,2,16
+^FDLA,${p.Uneg}^FS
+
+^CF0,35                
+^FO730,700               
+^FD${p.Uneg}^FS
+
+// ==========================
+// วางข้อมูล Item
+// ==========================
+^CF0,35
+^FO70,725^FD${p.ProductionDate || '-'}^FS
+^FO390,725^FD${p.ExpireDate || '-'}^FS
+^FO70,620^FD${p.LocationKeep || '-'}^FS
+^CF0,35
+^FO370,590
+^FB300,2,0,L,0
+^FD${p.LocationWaste || '-'}^FS
+
+^CF0,60 
+^FO40,100^FD${p.ProductName || '-'}^FS
+^FO710,100^FD${p.ChemicalType|| '-'}^FS
+^FO710,255^FD${p.InputData|| '-'}^FS       
+
+// ==========================
+// เพิ่ม Test 90/180/270/365 Day
+// ==========================
+^CF0,35
+^FO230,350^FDTest 90 Day: ${p.Test1 || '-'}^FS
+^FO230,400^FDTest 180 Day: ${p.Test2 || '-'}^FS
+^FO230,450^FDTest 270 Day: ${p.Test3 || '-'}^FS
+^FO230,500^FDTest 365 Day: ${p.Test4 || '-'}^FS
+
+^XZ
+
+`;
+
+
+    // 🔹 พิมพ์ ZPL string ลง console ก่อนส่ง
+    console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zpl);
+
+    const PRINTER_IP = "172.26.20.4";
+    const PRINTER_PORT = 9100;
+    const client = new net.Socket();
+
+    client.connect(PRINTER_PORT, PRINTER_IP, () => {
+      client.write(zpl);
+      client.end();
+      console.log(`✅ ส่ง ZPL ไปเครื่องพิมพ์สำเร็จ: ${p.Uneg}`);
+      res.status(200).json({ success: true, message: "Printed successfully", Uneg: p.Uneg });
+    });
+
+    client.on("error", (err) => {
+      console.error("❌ ส่ง ZPL ไม่สำเร็จ:", err);
+      res.status(500).json({ success: false, message: err.message });
+    });
+
+  } catch (err) {
+    console.error("❌ /print error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ==================== Nodemailer + Cron ====================
 const transporter = nodemailer.createTransport({
   host: "smtp.office365.com",
   port: 587,
   secure: false,
-  auth: {
-    user: "es1_auto@thaiparker.co.th",
-    pass: "Password2025",
-  },
-  tls: {
-    ciphers: "SSLv3",
-  },
+  auth: { user: "es1_auto@thaiparker.co.th", pass: "Password2025" },
+  tls: { ciphers: "SSLv3" }
 });
 
-// ตั้งเวลาให้ส่งเมลทุกวันเวลา 16:45
-cron.schedule("45 16 * * *", async () => {
+cron.schedule("00 09 * * *", async () => {
   try {
-    console.log("🕓 กำลังส่งเมลอัตโนมัติ (16:45)...");
-
     const mailOptions = {
       from: "es1_auto@thaiparker.co.th",
       to: "teera@thaiparker.co.th",
       subject: "📩 รายงานอัตโนมัติ 16:45 น.",
-      html: `
-        <div style="font-family: Arial; padding: 10px;">
-          <h3 style="color:#0078D7;">แจ้งเตือนจากระบบ</h3>
-          <p>รายงานอัตโนมัติถูกส่งเวลา <b>16:45 น.</b></p>
-          <p>📅 วันที่ส่ง: ${new Date().toLocaleString("th-TH")}</p>
-        </div>
-      `,
+      html: `<div style="font-family: Arial; padding: 10px;">
+             <h3 style="color:#0078D7;">แจ้งเตือนจากระบบ</h3>
+             <p>รายงานอัตโนมัติถูกส่งเวลา <b>16:45 น.</b></p>
+             <p>📅 วันที่ส่ง: ${new Date().toLocaleString("th-TH")}</p>
+             </div>`,
     };
-
     await transporter.sendMail(mailOptions);
     console.log("✅ ส่งเมลเวลา 16:45 สำเร็จ");
-
   } catch (err) {
     console.error("❌ ส่งเมลเวลา 16:45 ไม่สำเร็จ:", err);
   }
 });
-// ==================== เริ่ม Server ====================
-app.listen(3006, () => console.log("🚀 Server running on http://127.0.0.1:3006"));
 
-// เริ่มต้นเซิร์ฟเวอร์
+// ==================== Start Server ====================
 const PORT = 3006;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on http://127.0.0.1:${PORT}`));
