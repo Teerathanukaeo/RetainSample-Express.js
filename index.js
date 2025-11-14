@@ -223,7 +223,7 @@ app.post('/print', async (req, res) => {
     // 🔹 พิมพ์ ZPL string ลง console ก่อนส่ง
     console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zpl);
 
-    const PRINTER_IP = "172.26.20.4";
+    const PRINTER_IP = "172.26.20.3";
     const PRINTER_PORT = 9100;
     const client = new net.Socket();
 
