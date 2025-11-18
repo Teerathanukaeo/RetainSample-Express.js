@@ -148,11 +148,11 @@ app.post('/SENTDATA', async (req, res) => {
             INSERT INTO [ScadaReport].[dbo].[SOI8_RetainSample]
             ([Uneg],[ProductName],[ChemicalType],[ChemicalPhysic],[ProductionDate],[Alert],
              [ExpireDate],[LocationKeep],[LocationWaste],[Pcs],[InputData],
-             [Test1],[AlertTest1],[Test2],[AlertTest2],[Test3],[AlertTest3],[Test4],[AlertTest4],[Status])
+             [Test1],[AlertTest1],[Test2],[AlertTest2],[Test3],[AlertTest3],[Test4],[AlertTest4],[Remark],[Status])
             VALUES (
                 ${p.Uneg},${p.ProductName},${p.ChemicalType},${p.ChemicalPhysic},${p.ProductionDate},
                 ${p.Alert},${p.ExpireDate},${p.LocationKeep},${p.LocationWaste},${p.Pcs},${p.InputData},
-                ${p.Test1},${p.AlertTest1},${p.Test2},${p.AlertTest2},${p.Test3},${p.AlertTest3},${p.Test4},${p.AlertTest4},${p.Status}
+                ${p.Test1},${p.AlertTest1},${p.Test2},${p.AlertTest2},${p.Test3},${p.AlertTest3},${p.Test4},${p.AlertTest4},${p.Remark},${p.Status}
             );
         `;
         res.status(201).json({ message: "✅ Data inserted successfully" });
