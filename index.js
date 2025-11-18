@@ -27,10 +27,18 @@ const dbConfig = {
 function isToday(dateValue) {
   if (!dateValue) return false;
   const d = new Date(dateValue);
-  if (isNaN(d)) return false; // ถ้าไม่ใช่ date → false
-  const todayStr = new Date().toISOString().split("T")[0];
+  if (isNaN(d)) return false;
+  const today = new Date().toISOString().split("T")[0];
   const dateStr = d.toISOString().split("T")[0];
-  return dateStr === todayStr;
+  return dateStr === today;
+}
+
+// ฟังก์ชัน format วันที่เป็น dd/mm/yyyy
+function formatDate(dateValue) {
+  if (!dateValue) return "-";
+  const d = new Date(dateValue);
+  if (isNaN(d)) return "-";
+  return d.toLocaleDateString("th-TH");
 }
 
 // Connect to Database
@@ -264,92 +272,135 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("32 09 * * *", async () => {
+cron.schedule("53 09 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
-    // Query SQL เอาทุก Item
+    // Query SQL เอาข้อมูลทั้งหมด
     const result = await sql.query(`
       SELECT [Uneg],[ProductName],[ChemicalType],[ChemicalPhysic],
              [ProductionDate],[Alert],[ExpireDate],[LocationKeep],
-             [LocationWaste],[Pcs],[InputData],[Test1],[AlertTest1],
-             [Test2],[AlertTest2],[Test3],[AlertTest3],
-             [Test4],[AlertTest4],[Remark],[Status]
+             [LocationWaste],[Pcs],[InputData],
+             [Test1],[AlertTest1],[Test2],[AlertTest2],
+             [Test3],[AlertTest3],[Test4],[AlertTest4],
+             [Remark],[Status]
       FROM [ScadaReport].[dbo].[SOI8_RetainSample]
     `);
 
-    // เลือกเฉพาะรายการที่ Alert วันนี้
-    const todayItems = result.recordset.filter(item =>
-      isToday(item.Alert) ||
+    const data = result.recordset;
+
+    // ==========================
+    // 1) ใกล้ถึงกำหนดทิ้ง (ตาม Alert)
+    // ==========================
+    const discardList = data.filter(item => isToday(item.Alert));
+
+    // ==========================
+    // 2) ใกล้ถึงกำหนดทดสอบ (Test Alerts)
+    // ==========================
+    const testList = data.filter(item =>
       isToday(item.AlertTest1) ||
       isToday(item.AlertTest2) ||
       isToday(item.AlertTest3) ||
       isToday(item.AlertTest4)
     );
 
-    // ถ้าไม่มีรายการวันนี้ ส่งเมลแบบไม่มีข้อมูล
-    if (todayItems.length === 0) {
-      const mailOptions = {
-        from: "es1_auto@thaiparker.co.th",
-        to: "teera@thaiparker.co.th",
-        subject: "📩 รายงาน Alert วันนี้ (ไม่มีรายการถึงกำหนด)",
-        html: `<p>วันนี้ไม่มีรายการที่ถึงกำหนด Alert</p>`,
-      };
-      await transporter.sendMail(mailOptions);
-      console.log("📭 ส่งเมล (ไม่มีรายการ) สำเร็จ");
-      return;
+    // ==========================
+    // ฟังก์ชันสร้างตาราง HTML สำหรับทิ้ง
+    // ==========================
+    function createDiscardTable(rows) {
+      if (rows.length === 0) return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (Alert)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+      let html = `
+        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (Alert)</h3>
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
+          <tr style="background:#0078D7; color:white;">
+            <th>Uneg</th>
+            <th>ChemicalType</th>
+            <th>วันผลิต</th>
+            <th>วันหมดอายุ</th>
+            <th>สถานที่จัดเก็บ</th>
+            <th>สถานที่ทิ้ง</th>
+          </tr>
+      `;
+      rows.forEach(item => {
+        html += `
+          <tr>
+            <td>${item.Uneg ?? "-"}</td>
+            <td>${item.ChemicalType ?? "-"}</td>
+            <td>${formatDate(item.ProductionDate)}</td>
+            <td>${formatDate(item.ExpireDate)}</td>
+            <td>${item.LocationKeep ?? "-"}</td>
+            <td>${item.LocationWaste ?? "-"}</td>
+          </tr>
+        `;
+      });
+      html += "</table>";
+      return html;
     }
 
-    // สร้าง HTML Table
-    let htmlTable = `
-      <h3>📌 รายการที่ถึงกำหนด Alert วันนี้ (${new Date().toLocaleDateString("th-TH")})</h3>
-      <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
-        <tr style="background:#0078D7; color:white;">
-          <th>Uneg</th>
-          <th>ProductName</th>
-          <th>ChemicalType</th>
-          <th>ProductionDate</th>
-          <th>Alert</th>
-          <th>AlertTest1</th>
-          <th>AlertTest2</th>
-          <th>AlertTest3</th>
-          <th>AlertTest4</th>
-          <th>LocationKeep</th>
-          <th>LocationWaste</th>
-        </tr>
+    // ==========================
+    // ฟังก์ชันสร้างตาราง HTML สำหรับทดสอบ
+    // ==========================
+    function createTestTable(rows) {
+      if (rows.length === 0) return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (Test Alerts)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+      let html = `
+        <h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (Test Alerts)</h3>
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
+          <tr style="background:#0078D7; color:white;">
+            <th>Uneg</th>
+            <th>ChemicalType</th>
+            <th>วันผลิต</th>
+            <th>วันหมดอายุ</th>
+            <th>ทดสอบ 1</th>
+            <th>ทดสอบ 2</th>
+            <th>ทดสอบ 3</th>
+            <th>ทดสอบ 4</th>
+            <th>สถานที่จัดเก็บ</th>
+            <th>สถานที่ทิ้ง</th>
+          </tr>
+      `;
+      rows.forEach(item => {
+        html += `
+          <tr>
+            <td>${item.Uneg ?? "-"}</td>
+            <td>${item.ChemicalType ?? "-"}</td>
+            <td>${formatDate(item.ProductionDate)}</td>
+            <td>${formatDate(item.ExpireDate)}</td>
+            <td>${formatDate(item.Test1)}</td>
+            <td>${formatDate(item.Test2)}</td>
+            <td>${formatDate(item.Test3)}</td>
+            <td>${formatDate(item.Test4)}</td>
+            <td>${item.LocationKeep ?? "-"}</td>
+            <td>${item.LocationWaste ?? "-"}</td>
+          </tr>
+        `;
+      });
+      html += "</table>";
+      return html;
+    }
+
+    // ==========================
+    // สร้าง HTML Email รวม
+    // ==========================
+    const emailHtml = `
+      <div style="font-family: Arial; padding: 10px;">
+        ${createDiscardTable(discardList)}
+        <br><hr><br>
+        ${createTestTable(testList)}
+      </div>
     `;
 
-    todayItems.forEach(item => {
-      htmlTable += `
-        <tr>
-          <td>${item.Uneg}</td>
-          <td>${item.ProductName}</td>
-          <td>${item.ChemicalType}</td>
-          <td>${item.ProductionDate ?? ""}</td>
-          <td>${item.Alert ?? ""}</td>
-          <td>${item.AlertTest1 ?? ""}</td>
-          <td>${item.AlertTest2 ?? ""}</td>
-          <td>${item.AlertTest3 ?? ""}</td>
-          <td>${item.AlertTest4 ?? ""}</td>
-          <td>${item.LocationKeep ?? ""}</td>
-          <td>${item.LocationWaste ?? ""}</td>
-        </tr>
-      `;
-    });
-
-    htmlTable += "</table>";
-
+    // ==========================
     // ส่งเมล
+    // ==========================
     const mailOptions = {
       from: "es1_auto@thaiparker.co.th",
       to: "teera@thaiparker.co.th",
-      subject: "📩 รายงาน Alert ประจำวัน",
-      html: htmlTable,
+      subject: "📩 รายงาน Alert ประจำวัน (แยกกำหนดทิ้ง & ทดสอบ)",
+      html: emailHtml,
     };
 
     await transporter.sendMail(mailOptions);
-
-    console.log("✅ ส่งเมลรายการ Alert วันนี้สำเร็จ");
+    console.log("✅ ส่งเมลสำเร็จ");
 
   } catch (err) {
     console.error("❌ CRON ERROR:", err);
