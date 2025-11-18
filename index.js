@@ -6,6 +6,7 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const cron = require("node-cron");
 const net = require('net');
+const transporter = require("./mailer");
 
 // ==================== Express Setup ====================
 const app = express();
@@ -23,6 +24,15 @@ const dbConfig = {
         trustServerCertificate: true
     }
 };
+
+function isToday(dateValue) {
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  if (isNaN(d)) return false; // ถ้าไม่ใช่ date → false
+  const todayStr = new Date().toISOString().split("T")[0];
+  const dateStr = d.toISOString().split("T")[0];
+  return dateStr === todayStr;
+}
 
 // Connect to Database
 sql.connect(dbConfig, (err) => {
@@ -245,105 +255,6 @@ app.post('/print', async (req, res) => {
   }
 });
 
-app.post('/print_Special', async (req, res) => {
-  try {
-    const p = req.body;
-    if (!p.Uneg) return res.status(400).json({ message: "Missing Uneg" });
-
-    const zpl = `
-^XA
-^PW1116
-^LL780
-^CF0,45
-
-// ==========================
-// วาดตาราง
-// ==========================
-^FO15,15^GB1086,750,5^FS \\Main
-^FO15,15^GB635,220,5^FS \\productname
-^FO645,15^GB455,150,5^FS \\chemical type
-^FO645,160^GB455,160,5^FS \\input data
-^FO15,665^GB317.5,100,5^FS
-^FO15,665^GB635,100,5^FS
-^FO15,540^GB317.5,130,5^FS
-^FO15,540^GB635,130,5^FS
-^FO645,314^GB455,450,5^FS \\qr code
-
-// ==========================
-// วางข้อความฟิลด์
-// ==========================
-^CF0,30,30
-^FO25,30^FDProductName^FS
-^FO655,30^FDChemicalType^FS
-^FO655,175^FDInput by^FS
-^FO25,680^FDProductionDate^FS
-^FO340,680^FDExpireDate^FS
-^FO25,555^FDLocationKeep^FS
-^FO340,555^FDLocationWaste^FS
-
-^FO710,330
-^BQN,2,16
-^FDLA,${p.Uneg}^FS
-
-^CF0,35                
-^FO730,700               
-^FD${p.Uneg}^FS
-
-// ==========================
-// วางข้อมูล Item
-// ==========================
-^CF0,35
-^FO70,725^FD${p.ProductionDate || '-'}^FS
-^FO390,725^FD${p.ExpireDate || '-'}^FS
-^FO70,620^FD${p.LocationKeep || '-'}^FS
-^CF0,35
-^FO370,590
-^FB300,2,0,L,0
-^FD${p.LocationWaste || '-'}^FS
-
-^CF0,60 
-^FO40,100^FD${p.ProductName || '-'}^FS
-^FO710,100^FD${p.ChemicalType|| '-'}^FS
-^FO710,255^FD${p.InputData|| '-'}^FS       
-
-// ==========================
-// เพิ่ม Test 90/180/270/365 Day
-// ==========================
-^CF0,35
-^FO230,350^FDTest 90 Day: ${p.Test1 || '-'}^FS
-^FO230,400^FDTest 180 Day: ${p.Test2 || '-'}^FS
-^FO230,450^FDTest 270 Day: ${p.Test3 || '-'}^FS
-^FO230,500^FDTest 365 Day: ${p.Test4 || '-'}^FS
-
-^XZ
-
-`;
-
-
-    // 🔹 พิมพ์ ZPL string ลง console ก่อนส่ง
-    console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zpl);
-
-    const PRINTER_IP = "172.26.20.4";
-    const PRINTER_PORT = 9100;
-    const client = new net.Socket();
-
-    client.connect(PRINTER_PORT, PRINTER_IP, () => {
-      client.write(zpl);
-      client.end();
-      console.log(`✅ ส่ง ZPL ไปเครื่องพิมพ์สำเร็จ: ${p.Uneg}`);
-      res.status(200).json({ success: true, message: "Printed successfully", Uneg: p.Uneg });
-    });
-
-    client.on("error", (err) => {
-      console.error("❌ ส่ง ZPL ไม่สำเร็จ:", err);
-      res.status(500).json({ success: false, message: err.message });
-    });
-
-  } catch (err) {
-    console.error("❌ /print error:", err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
 
 // ==================== Nodemailer + Cron ====================
 const transporter = nodemailer.createTransport({
@@ -356,114 +267,90 @@ const transporter = nodemailer.createTransport({
 
 cron.schedule("00 09 * * *", async () => {
   try {
-    console.log("⏳ กำลังตรวจสอบรายการ Alert + Test...");
+    console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
-    const pool = await sql.connect(dbConfig);
-    const today = new Date().toISOString().substring(0, 10);
-
-    const result = await pool.query(`
-      SELECT
-        Id, Uneg, ProductName, ChemicalType, ProductionDate, ExpireDate,
-        LocationKeep, LocationWaste, InputData,
-        Alert, AlertTest1, AlertTest2, AlertTest3, AlertTest4
-      FROM SOI8_RetainSample
-      WHERE 
-        CONVERT(date, Alert) = '${today}' OR
-        CONVERT(date, AlertTest1) = '${today}' OR
-        CONVERT(date, AlertTest2) = '${today}' OR
-        CONVERT(date, AlertTest3) = '${today}' OR
-        CONVERT(date, AlertTest4) = '${today}'
+    // Query SQL เอาทุก Item
+    const result = await sql.query(`
+      SELECT [Uneg],[ProductName],[ChemicalType],[ChemicalPhysic],
+             [ProductionDate],[Alert],[ExpireDate],[LocationKeep],
+             [LocationWaste],[Pcs],[InputData],[Test1],[AlertTest1],
+             [Test2],[AlertTest2],[Test3],[AlertTest3],
+             [Test4],[AlertTest4],[Remark],[Status]
+      FROM [ScadaReport].[dbo].[SOI8_RetainSample]
     `);
 
-    const items = result.recordset;
+    // เลือกเฉพาะรายการที่ Alert วันนี้
+    const todayItems = result.recordset.filter(item =>
+      isToday(item.Alert) ||
+      isToday(item.AlertTest1) ||
+      isToday(item.AlertTest2) ||
+      isToday(item.AlertTest3) ||
+      isToday(item.AlertTest4)
+    );
 
-    if (items.length === 0) {
-      console.log("ℹ️ วันนี้ไม่มีรายการครบกำหนด");
+    // ถ้าไม่มีรายการวันนี้ ส่งเมลแบบไม่มีข้อมูล
+    if (todayItems.length === 0) {
+      const mailOptions = {
+        from: "es1_auto@thaiparker.co.th",
+        to: "teera@thaiparker.co.th",
+        subject: "📩 รายงาน Alert วันนี้ (ไม่มีรายการถึงกำหนด)",
+        html: `<p>วันนี้ไม่มีรายการที่ถึงกำหนด Alert</p>`,
+      };
+      await transporter.sendMail(mailOptions);
+      console.log("📭 ส่งเมล (ไม่มีรายการ) สำเร็จ");
       return;
     }
 
-    // กลุ่มรายการตามประเภท Alert
-    const groups = {
-      Alert: [],
-      AlertTest1: [],
-      AlertTest2: [],
-      AlertTest3: [],
-      AlertTest4: []
-    };
+    // สร้าง HTML Table
+    let htmlTable = `
+      <h3>📌 รายการที่ถึงกำหนด Alert วันนี้ (${new Date().toLocaleDateString("th-TH")})</h3>
+      <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
+        <tr style="background:#0078D7; color:white;">
+          <th>Uneg</th>
+          <th>ProductName</th>
+          <th>ChemicalType</th>
+          <th>ProductionDate</th>
+          <th>Alert</th>
+          <th>AlertTest1</th>
+          <th>AlertTest2</th>
+          <th>AlertTest3</th>
+          <th>AlertTest4</th>
+          <th>LocationKeep</th>
+          <th>LocationWaste</th>
+        </tr>
+    `;
 
-    items.forEach(item => {
-      if (item.Alert && item.Alert.toISOString().substring(0, 10) === today)
-        groups.Alert.push(item);
-
-      if (item.AlertTest1 && item.AlertTest1.toISOString().substring(0, 10) === today)
-        groups.AlertTest1.push(item);
-
-      if (item.AlertTest2 && item.AlertTest2.toISOString().substring(0, 10) === today)
-        groups.AlertTest2.push(item);
-
-      if (item.AlertTest3 && item.AlertTest3.toISOString().substring(0, 10) === today)
-        groups.AlertTest3.push(item);
-
-      if (item.AlertTest4 && item.AlertTest4.toISOString().substring(0, 10) === today)
-        groups.AlertTest4.push(item);
-    });
-
-    function buildTable(title, rows) {
-      if (rows.length === 0) return "";
-
-      const rowsHtml = rows.map(item => `
+    todayItems.forEach(item => {
+      htmlTable += `
         <tr>
           <td>${item.Uneg}</td>
           <td>${item.ProductName}</td>
           <td>${item.ChemicalType}</td>
-          <td>${item.ProductionDate ? new Date(item.ProductionDate).toLocaleDateString('th-TH') : "-"}</td>
-          <td>${item.ExpireDate ? new Date(item.ExpireDate).toLocaleDateString('th-TH') : "-"}</td>
-          <td>${item.LocationKeep || "-"}</td>
-          <td>${item.LocationWaste || "-"}</td>
-          <td>${item.InputData || "-"}</td>
+          <td>${item.ProductionDate ?? ""}</td>
+          <td>${item.Alert ?? ""}</td>
+          <td>${item.AlertTest1 ?? ""}</td>
+          <td>${item.AlertTest2 ?? ""}</td>
+          <td>${item.AlertTest3 ?? ""}</td>
+          <td>${item.AlertTest4 ?? ""}</td>
+          <td>${item.LocationKeep ?? ""}</td>
+          <td>${item.LocationWaste ?? ""}</td>
         </tr>
-      `).join("");
-
-      return `
-        <h3 style="color:#0078D7;">${title} (${rows.length} รายการ)</h3>
-        <table border="1" cellspacing="0" cellpadding="6" 
-          style="border-collapse: collapse; width:100%; font-size:14px;">
-          <tr style="background:#0078D7; color:white;">
-            <th>Uneg</th>
-            <th>ProductName</th>
-            <th>ChemicalType</th>
-            <th>ProductionDate</th>
-            <th>ExpireDate</th>
-            <th>LocationKeep</th>
-            <th>LocationWaste</th>
-            <th>InputData</th>
-          </tr>
-          ${rowsHtml}
-        </table>
-        <br/>
       `;
-    }
+    });
 
-    // สร้าง HTML เมล
-    let htmlContent = `
-      <h2>📌 รายงาน Retain Sample ครบกำหนดวันนี้ (${new Date().toLocaleDateString('th-TH')})</h2>
-    `;
+    htmlTable += "</table>";
 
-    htmlContent += buildTable("🔔 Alert (วันครบกำหนด Retain)", groups.Alert);
-    htmlContent += buildTable("🧪 Test 90 Day", groups.AlertTest1);
-    htmlContent += buildTable("🧪 Test 180 Day", groups.AlertTest2);
-    htmlContent += buildTable("🧪 Test 270 Day", groups.AlertTest3);
-    htmlContent += buildTable("🧪 Test 365 Day", groups.AlertTest4);
-
+    // ส่งเมล
     const mailOptions = {
       from: "es1_auto@thaiparker.co.th",
       to: "teera@thaiparker.co.th",
-      subject: "📩 รายงาน Retain Sample ครบกำหนดวันนี้",
-      html: htmlContent
+      subject: "📩 รายงาน Alert ประจำวัน",
+      html: htmlTable,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("✅ ส่งเมลสรุปรายการสำเร็จ");
+
+    console.log("✅ ส่งเมลรายการ Alert วันนี้สำเร็จ");
 
   } catch (err) {
     console.error("❌ CRON ERROR:", err);
