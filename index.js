@@ -6,7 +6,6 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const cron = require("node-cron");
 const net = require('net');
-const transporter = require("./mailer");
 
 // ==================== Express Setup ====================
 const app = express();
