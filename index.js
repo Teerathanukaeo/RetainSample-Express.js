@@ -249,6 +249,7 @@ app.post('/print', async (req, res) => {
 ^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
 ^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
 ^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
+^FO40,180^${p.Remark || '-'}^FS
 
 ^XZ
 `;
