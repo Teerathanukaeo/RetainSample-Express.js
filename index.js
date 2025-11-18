@@ -264,7 +264,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("00 09 * * *", async () => {
+cron.schedule("32 09 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
