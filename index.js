@@ -162,6 +162,23 @@ app.post('/SENTDATA', async (req, res) => {
     }
 });
 
+app.post('/discard', async (req, res) => {
+  try {
+    const { Uneg, Status } = req.body;
+    if (!Uneg || !Status) return res.status(400).json({ message: "Missing fields" });
+
+    await sql.query`
+      UPDATE [ScadaReport].[dbo].[SOI8_RetainSample]
+      SET Status = ${Status}
+      WHERE Uneg = ${Uneg}
+    `;
+    res.status(200).json({ message: "Status updated successfully" });
+  } catch (err) {
+    console.error("❌ /discard error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ==================== Print API ====================
 app.post('/print', async (req, res) => {
   try {
