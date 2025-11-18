@@ -356,22 +356,120 @@ const transporter = nodemailer.createTransport({
 
 cron.schedule("00 09 * * *", async () => {
   try {
+    console.log("⏳ กำลังตรวจสอบรายการ Alert + Test...");
+
+    const pool = await sql.connect(dbConfig);
+    const today = new Date().toISOString().substring(0, 10);
+
+    const result = await pool.query(`
+      SELECT
+        Id, Uneg, ProductName, ChemicalType, ProductionDate, ExpireDate,
+        LocationKeep, LocationWaste, InputData,
+        Alert, AlertTest1, AlertTest2, AlertTest3, AlertTest4
+      FROM SOI8_RetainSample
+      WHERE 
+        CONVERT(date, Alert) = '${today}' OR
+        CONVERT(date, AlertTest1) = '${today}' OR
+        CONVERT(date, AlertTest2) = '${today}' OR
+        CONVERT(date, AlertTest3) = '${today}' OR
+        CONVERT(date, AlertTest4) = '${today}'
+    `);
+
+    const items = result.recordset;
+
+    if (items.length === 0) {
+      console.log("ℹ️ วันนี้ไม่มีรายการครบกำหนด");
+      return;
+    }
+
+    // กลุ่มรายการตามประเภท Alert
+    const groups = {
+      Alert: [],
+      AlertTest1: [],
+      AlertTest2: [],
+      AlertTest3: [],
+      AlertTest4: []
+    };
+
+    items.forEach(item => {
+      if (item.Alert && item.Alert.toISOString().substring(0, 10) === today)
+        groups.Alert.push(item);
+
+      if (item.AlertTest1 && item.AlertTest1.toISOString().substring(0, 10) === today)
+        groups.AlertTest1.push(item);
+
+      if (item.AlertTest2 && item.AlertTest2.toISOString().substring(0, 10) === today)
+        groups.AlertTest2.push(item);
+
+      if (item.AlertTest3 && item.AlertTest3.toISOString().substring(0, 10) === today)
+        groups.AlertTest3.push(item);
+
+      if (item.AlertTest4 && item.AlertTest4.toISOString().substring(0, 10) === today)
+        groups.AlertTest4.push(item);
+    });
+
+    function buildTable(title, rows) {
+      if (rows.length === 0) return "";
+
+      const rowsHtml = rows.map(item => `
+        <tr>
+          <td>${item.Uneg}</td>
+          <td>${item.ProductName}</td>
+          <td>${item.ChemicalType}</td>
+          <td>${item.ProductionDate ? new Date(item.ProductionDate).toLocaleDateString('th-TH') : "-"}</td>
+          <td>${item.ExpireDate ? new Date(item.ExpireDate).toLocaleDateString('th-TH') : "-"}</td>
+          <td>${item.LocationKeep || "-"}</td>
+          <td>${item.LocationWaste || "-"}</td>
+          <td>${item.InputData || "-"}</td>
+        </tr>
+      `).join("");
+
+      return `
+        <h3 style="color:#0078D7;">${title} (${rows.length} รายการ)</h3>
+        <table border="1" cellspacing="0" cellpadding="6" 
+          style="border-collapse: collapse; width:100%; font-size:14px;">
+          <tr style="background:#0078D7; color:white;">
+            <th>Uneg</th>
+            <th>ProductName</th>
+            <th>ChemicalType</th>
+            <th>ProductionDate</th>
+            <th>ExpireDate</th>
+            <th>LocationKeep</th>
+            <th>LocationWaste</th>
+            <th>InputData</th>
+          </tr>
+          ${rowsHtml}
+        </table>
+        <br/>
+      `;
+    }
+
+    // สร้าง HTML เมล
+    let htmlContent = `
+      <h2>📌 รายงาน Retain Sample ครบกำหนดวันนี้ (${new Date().toLocaleDateString('th-TH')})</h2>
+    `;
+
+    htmlContent += buildTable("🔔 Alert (วันครบกำหนด Retain)", groups.Alert);
+    htmlContent += buildTable("🧪 Test 90 Day", groups.AlertTest1);
+    htmlContent += buildTable("🧪 Test 180 Day", groups.AlertTest2);
+    htmlContent += buildTable("🧪 Test 270 Day", groups.AlertTest3);
+    htmlContent += buildTable("🧪 Test 365 Day", groups.AlertTest4);
+
     const mailOptions = {
       from: "es1_auto@thaiparker.co.th",
       to: "teera@thaiparker.co.th",
-      subject: "📩 รายงานอัตโนมัติ 16:45 น.",
-      html: `<div style="font-family: Arial; padding: 10px;">
-             <h3 style="color:#0078D7;">แจ้งเตือนจากระบบ</h3>
-             <p>รายงานอัตโนมัติถูกส่งเวลา <b>16:45 น.</b></p>
-             <p>📅 วันที่ส่ง: ${new Date().toLocaleString("th-TH")}</p>
-             </div>`,
+      subject: "📩 รายงาน Retain Sample ครบกำหนดวันนี้",
+      html: htmlContent
     };
+
     await transporter.sendMail(mailOptions);
-    console.log("✅ ส่งเมลเวลา 16:45 สำเร็จ");
+    console.log("✅ ส่งเมลสรุปรายการสำเร็จ");
+
   } catch (err) {
-    console.error("❌ ส่งเมลเวลา 16:45 ไม่สำเร็จ:", err);
+    console.error("❌ CRON ERROR:", err);
   }
 });
+
 
 // ==================== Start Server ====================
 const PORT = 3006;
