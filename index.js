@@ -272,7 +272,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("53 09 * * *", async () => {
+cron.schedule("57 09 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -314,6 +314,7 @@ cron.schedule("53 09 * * *", async () => {
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
             <th>Uneg</th>
+            <th>ProductName</th>
             <th>ChemicalType</th>
             <th>วันผลิต</th>
             <th>วันหมดอายุ</th>
@@ -325,6 +326,7 @@ cron.schedule("53 09 * * *", async () => {
         html += `
           <tr>
             <td>${item.Uneg ?? "-"}</td>
+            <td>${item.ProductName ?? "-"}</td>
             <td>${item.ChemicalType ?? "-"}</td>
             <td>${formatDate(item.ProductionDate)}</td>
             <td>${formatDate(item.ExpireDate)}</td>
@@ -347,6 +349,7 @@ cron.schedule("53 09 * * *", async () => {
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
             <th>Uneg</th>
+            <th>ProductName</th>
             <th>ChemicalType</th>
             <th>วันผลิต</th>
             <th>วันหมดอายุ</th>
@@ -362,6 +365,7 @@ cron.schedule("53 09 * * *", async () => {
         html += `
           <tr>
             <td>${item.Uneg ?? "-"}</td>
+            <td>${item.ProductName ?? "-"}</td>
             <td>${item.ChemicalType ?? "-"}</td>
             <td>${formatDate(item.ProductionDate)}</td>
             <td>${formatDate(item.ExpireDate)}</td>
