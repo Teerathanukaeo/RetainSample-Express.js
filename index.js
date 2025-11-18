@@ -130,7 +130,7 @@ app.get('/GETSAMP3', async (req, res) => {
     try {
         const today = new Date();
         const Expire = today.toLocaleDateString('sv-SE');
-        const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE ExpireDate = ${Expire}`;
+        const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE ExpireDate = ${Expire} and Status = 'Inprocess'`;
         if (result.recordset.length > 0) res.json(result.recordset);
         else res.status(404).json({ message: 'No data found' });
     } catch (err) {
