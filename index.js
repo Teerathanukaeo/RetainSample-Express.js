@@ -272,7 +272,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("57 09 * * *", async () => {
+cron.schedule("02 10 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -399,7 +399,7 @@ cron.schedule("57 09 * * *", async () => {
     const mailOptions = {
       from: "es1_auto@thaiparker.co.th",
       to: "teera@thaiparker.co.th",
-      subject: "📩 รายงาน Alert ประจำวัน (แยกกำหนดทิ้ง & ทดสอบ)",
+      subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง & ทดสอบ)",
       html: emailHtml,
     };
 
