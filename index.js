@@ -103,7 +103,7 @@ app.get('/GETUNEG', async (req, res) => {
 app.get('/GETSAMP1', async (req, res) => {
     try {
         const Status = "Inprocess";
-        const result = await sql.query`SELECT * FROM SOI8_RetainSample WHERE Status = ${Status} order by Id desc`;
+        const result = await sql.query`SELECT * FROM SOI8_RetainSample order by Id desc`;
         if (result.recordset.length > 0) res.json(result.recordset);
         else res.status(404).json({ message: 'No data found' });
     } catch (err) {
@@ -290,7 +290,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("05 09 * * *", async () => {
+cron.schedule("00 09 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
