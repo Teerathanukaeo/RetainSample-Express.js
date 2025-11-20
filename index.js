@@ -102,14 +102,20 @@ app.get('/GETUNEG', async (req, res) => {
 
 app.get('/GETSAMP1', async (req, res) => {
     try {
-        const Status = "Inprocess";
-        const result = await sql.query`SELECT * FROM SOI8_RetainSample order by Id desc`;
+        const result = await sql.query`
+            SELECT *
+            FROM SOI8_RetainSample
+            WHERE Status <> 'End'
+            ORDER BY Id DESC
+        `;
+
         if (result.recordset.length > 0) res.json(result.recordset);
         else res.status(404).json({ message: 'No data found' });
     } catch (err) {
         res.status(500).send(err);
     }
 });
+
 
 app.get('/GETSAMP2', async (req, res) => {
     try {
