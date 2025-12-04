@@ -423,9 +423,9 @@ cron.schedule("00 09 * * *", async () => {
 const mailOptions = {
   from: "es1_auto@thaiparker.co.th",
   to: [
-    "teera@thaiparker.co.th",
     "Krongkarn@thaiparker.co.th",
-    "Matana@thaiparker.co.th"
+    "Mantana@thaiparker.co.th",
+    "Teera@thaiparker.co.th"
   ],
   subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง & ทดสอบ)",
   html: emailHtml,
