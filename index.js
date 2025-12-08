@@ -105,7 +105,7 @@ app.get('/GETSAMP1', async (req, res) => {
         const result = await sql.query`
             SELECT *
             FROM SOI8_RetainSample
-            WHERE Status <> 'End'
+            WHERE Status <> 'End' AND Status <> 'Reject'
             ORDER BY Id DESC
         `;
 
@@ -167,6 +167,31 @@ app.post('/SENTDATA', async (req, res) => {
         res.status(500).send(err);
     }
 });
+
+app.post('/Accept', async (req, res) => {
+  try {
+    const { Uneg, Status } = req.body;
+
+    if (!Uneg || !Status) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    await sql.query`
+      UPDATE [ScadaReport].[dbo].[SOI8_RetainSample]
+      SET Status = ${Status}
+      WHERE Uneg = ${Uneg}
+    `;
+
+    console.log(`✔ Updated Uneg: ${Uneg} → Status: ${Status}`);
+
+    res.status(200).json({ message: "Status updated successfully" });
+
+  } catch (err) {
+    console.error("❌ /accept error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 app.post('/discard', async (req, res) => {
   try {
