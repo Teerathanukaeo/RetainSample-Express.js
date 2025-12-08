@@ -328,13 +328,24 @@ cron.schedule("00 09 * * *", async () => {
       isToday(item.AlertTest4)
     );
 
+    console.log("📌 รายการทิ้งวันนี้:", discardList.length);
+    console.log("🧪 รายการทดสอบวันนี้:", testList.length);
+
+    // ==========================
+    // ถ้าไม่มีทั้งสองแบบ → ไม่ต้องส่งเมล
+    // ==========================
+    if (discardList.length === 0 && testList.length === 0) {
+      console.log("⭕ วันนี้ไม่มี Alert หรือ Test — ไม่ส่งเมล");
+      return;
+    }
+
     // ==========================
     // ฟังก์ชันสร้างตาราง HTML สำหรับทิ้ง
     // ==========================
     function createDiscardTable(rows) {
       if (rows.length === 0) return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (Alert)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
       let html = `
-        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (Alert)</h3>
+        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง</h3>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
             <th>Uneg</th>
@@ -369,7 +380,7 @@ cron.schedule("00 09 * * *", async () => {
     function createTestTable(rows) {
       if (rows.length === 0) return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (Test Alerts)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
       let html = `
-        <h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (Test Alerts)</h3>
+        <h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ</h3>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
             <th>Uneg</th>
@@ -420,17 +431,16 @@ cron.schedule("00 09 * * *", async () => {
     // ==========================
     // ส่งเมล
     // ==========================
-const mailOptions = {
-  from: "es1_auto@thaiparker.co.th",
-  to: [
-    "Krongkarn@thaiparker.co.th",
-    "Mantana@thaiparker.co.th",
-    "Teera@thaiparker.co.th"
-  ],
-  subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง & ทดสอบ)",
-  html: emailHtml,
-};
-
+    const mailOptions = {
+      from: "es1_auto@thaiparker.co.th",
+      to: [
+        "Krongkarn@thaiparker.co.th",
+        "Mantana@thaiparker.co.th",
+        "Teera@thaiparker.co.th"
+      ],
+      subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง & ทดสอบ)",
+      html: emailHtml,
+    };
 
     await transporter.sendMail(mailOptions);
     console.log("✅ ส่งเมลสำเร็จ");
@@ -439,6 +449,7 @@ const mailOptions = {
     console.error("❌ CRON ERROR:", err);
   }
 });
+
 
 
 // ==================== Start Server ====================
