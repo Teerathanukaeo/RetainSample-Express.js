@@ -217,7 +217,7 @@ app.post('/print', async (req, res) => {
     if (!p.Uneg) return res.status(400).json({ message: "Missing Uneg" });
 
     // 🔹 เช็คจำนวน Pcs (ถ้าไม่มีหรือเป็น 0 ให้พิมพ์ 1 ครั้ง)
-    const printCount = parseInt(p.Pcs) || 2;
+    const printCount = parseInt(p.Pcs) || 1;
     console.log(`🖨️  จำนวนที่ต้องพิมพ์: ${printCount} ใบ`);
 
     const zpl = `
