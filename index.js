@@ -216,6 +216,10 @@ app.post('/print', async (req, res) => {
     const p = req.body;
     if (!p.Uneg) return res.status(400).json({ message: "Missing Uneg" });
 
+    // 🔹 เช็คจำนวน Pcs (ถ้าไม่มีหรือเป็น 0 ให้พิมพ์ 1 ครั้ง)
+    const printCount = parseInt(p.Pcs) || 1;
+    console.log(`🖨️  จำนวนที่ต้องพิมพ์: ${printCount} ใบ`);
+
     const zpl = `
 ^XA
 ^PW1116
@@ -285,19 +289,94 @@ app.post('/print', async (req, res) => {
 ^XZ
 `;
 
+    // 🔹 ถ้าต้องการพิมพ์หลายใบ ให้ใช้ ^PQ command
+    const zplWithQuantity = `
+^XA
+^PW1116
+^LL780
+^CF0,45
+^PQ${printCount},0,1,Y
+
+// ==========================
+// วาดตาราง
+// ==========================
+^FO15,15^GB1086,750,5^FS \\Main
+^FO15,15^GB635,220,5^FS \\productname
+^FO645,15^GB455,150,5^FS \\chemical type
+^FO645,160^GB455,160,5^FS \\input data
+^FO15,665^GB317.5,100,5^FS
+^FO15,665^GB635,100,5^FS
+^FO15,540^GB317.5,130,5^FS
+^FO15,540^GB635,130,5^FS
+^FO645,314^GB455,450,5^FS \\qr code
+
+// ==========================
+// วางข้อความฟิลด์
+// ==========================
+^CF0,30,30
+^FO25,30^FDProductName^FS
+^FO655,30^FDChemicalType^FS
+^FO655,175^FDInput by^FS
+^FO25,680^FDProductionDate^FS
+^FO340,680^FDExpireDate^FS
+^FO25,555^FDLocationKeep^FS
+^FO340,555^FDLocationWaste^FS
+
+^FO710,330
+^BQN,2,16
+^FDLA,${p.Uneg}^FS
+
+^CF0,35                
+^FO730,700               
+^FD${p.Uneg}^FS
+
+// ==========================
+// วางข้อมูล Item
+// ==========================
+^CF0,35
+^FO70,725^FD${p.ProductionDate || '-'}^FS
+^FO390,725^FD${p.ExpireDate || '-'}^FS
+^FO70,620^FD${p.LocationKeep || '-'}^FS
+^CF0,35
+^FO370,590
+^FB250,2,0,L,0
+^FD${p.LocationWaste || '-'}^FS
+
+^CF0,60 
+^FO40,100^FD${p.ProductName || '-'}^FS
+^FO710,100^FD${p.ChemicalType|| '-'}^FS
+^FO710,255^FD${p.InputData|| '-'}^FS       
+
+// ==========================
+// เพิ่ม Test 90/180/270/365 Day
+// ==========================
+^CF0,35
+^FO150,300^FDTest 90 Day: ${p.Test1 || '-'}^FS
+^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
+^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
+^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
+^FO40,180^FD${p.Remark || '-'}^FS
+
+^XZ
+`;
 
     // 🔹 พิมพ์ ZPL string ลง console ก่อนส่ง
-    console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zpl);
+    console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zplWithQuantity);
 
     const PRINTER_IP = "172.26.20.3";
     const PRINTER_PORT = 9100;
     const client = new net.Socket();
 
     client.connect(PRINTER_PORT, PRINTER_IP, () => {
-      client.write(zpl);
+      client.write(zplWithQuantity);
       client.end();
-      console.log(`✅ ส่ง ZPL ไปเครื่องพิมพ์สำเร็จ: ${p.Uneg}`);
-      res.status(200).json({ success: true, message: "Printed successfully", Uneg: p.Uneg });
+      console.log(`✅ ส่ง ZPL ไปเครื่องพิมพ์สำเร็จ: ${p.Uneg} (จำนวน ${printCount} ใบ)`);
+      res.status(200).json({ 
+        success: true, 
+        message: "Printed successfully", 
+        Uneg: p.Uneg,
+        printCount: printCount
+      });
     });
 
     client.on("error", (err) => {
