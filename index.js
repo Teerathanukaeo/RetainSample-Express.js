@@ -236,15 +236,12 @@ app.post('/print', async (req, res) => {
 ^FO645,15^GB455,150,5^FS
 ^FO645,160^GB455,160,5^FS
 
-^FX Location Keep / Waste
 ^FO15,540^GB635,130,5^FS
 ^FO332,540^GB5,130,5^FS
 
-^FX Production / Expire Date
 ^FO15,665^GB635,100,5^FS
 ^FO332,665^GB5,100,5^FS
 
-^FX QR Area
 ^FO645,314^GB455,450,5^FS
 
 ^FX ==========================
@@ -260,12 +257,13 @@ app.post('/print', async (req, res) => {
 ^FO340,680^FDExpire Date^FS
 
 ^FX ==========================
-^FX TAG (Top Right – No Frame)
+^FX TAG (Top Right – FIXED)
 ^FX ==========================
 ^CF0,30
 ^FO960,30
 ^SN1,1
-^FDTag #/##^FS
+^FDTag ^SN/2^FS
+^SN
 
 ^FX ==========================
 ^FX QR Code
