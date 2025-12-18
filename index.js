@@ -259,12 +259,11 @@ app.post('/print', async (req, res) => {
 ^FO340,680^FDExpire Date^FS
 
 ^FX ==========================
-^FX TAG (Top Right)  --> 1/2 , 2/2
+^FX TAG (Top Right - No Frame)
 ^FX ==========================
-^FO820,35^GB260,55,3^FS
 ^CF0,30
-^FO835,50^FDTag:^FS
-^FO900,50
+^FO865,50^FDTag:^FS
+^FO935,50
 ^SN1,1
 ^FD#/${printCount}^FS
 
@@ -306,6 +305,7 @@ app.post('/print', async (req, res) => {
 ^FO40,180^FD${p.Remark || '-'}^FS
 
 ^XZ
+
 `;
 
     console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zplWithQuantity);
