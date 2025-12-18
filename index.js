@@ -254,9 +254,9 @@ app.post('/print', async (req, res) => {
 ^FX TAG (Top Right)
 ^FX ==========================
 ^CF0,30
-^FO960,30
-^SN1,1,Y
-^FDTag ^SF^FS
+^FO900,30^FDTag^FS
+^FO980,30^SN1,1,Y^FS
+^FO1020,30^FD/2^FS
 ^FX ==========================
 ^FX QR Code
 ^FX ==========================
