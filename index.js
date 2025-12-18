@@ -246,13 +246,13 @@ app.post('/print', async (req, res) => {
 ^FO25,30^FDProduct Name^FS
 ^FO655,30^FDChemical Type^FS
 ^FO655,175^FDInput by^FS
-^FO25,555^FDLocation Keep^FS
-^FO340,555^FDLocation Waste^FS
 ^FO25,680^FDProduction Date^FS
 ^FO340,680^FDExpire Date^FS
+^FO25,555^FDLocation Keep^FS
+^FO340,555^FDLocation Waste^FS
 
 ^FX ==========================
-^FX TAG NUMBER (Top Right - Empty Area)
+^FX TAG (Top Right Empty Area)
 ^FX ==========================
 ^FO820,35^GB260,55,3^FS
 ^CF0,30
@@ -299,7 +299,6 @@ app.post('/print', async (req, res) => {
 ^FO40,180^FD${p.Remark || '-'}^FS
 
 ^XZ
-
 `;
 
     console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zplWithQuantity);
