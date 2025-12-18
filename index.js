@@ -337,7 +337,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("40 10 * * *", async () => {
+cron.schedule("45 15 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -516,8 +516,8 @@ cron.schedule("40 10 * * *", async () => {
     await transporter.sendMail({
       from: "es1_auto@thaiparker.co.th",
       to: [
-        "Krongkarn@thaiparker.co.th",
-        "Mantana@thaiparker.co.th",
+        // "Krongkarn@thaiparker.co.th",
+        // "Mantana@thaiparker.co.th",
         "Teera@thaiparker.co.th"
       ],
       subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง / ค้างกำจัด / ทดสอบ)",
