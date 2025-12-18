@@ -229,7 +229,7 @@ app.post('/print', async (req, res) => {
 ^PQ${printCount},0,1,Y
 
 ^FX ==========================
-^FX วาดตาราง
+^FX Draw Frames
 ^FX ==========================
 ^FO15,15^GB1086,750,5^FS
 ^FO15,15^GB635,220,5^FS
@@ -240,7 +240,7 @@ app.post('/print', async (req, res) => {
 ^FO645,314^GB455,450,5^FS
 
 ^FX ==========================
-^FX วางข้อความหัวฟิลด์
+^FX Field Titles
 ^FX ==========================
 ^CF0,30
 ^FO25,30^FDProduct Name^FS
@@ -250,6 +250,16 @@ app.post('/print', async (req, res) => {
 ^FO340,555^FDLocation Waste^FS
 ^FO25,680^FDProduction Date^FS
 ^FO340,680^FDExpire Date^FS
+
+^FX ==========================
+^FX TAG NUMBER (Top Right - Empty Area)
+^FX ==========================
+^FO820,35^GB260,55,3^FS
+^CF0,30
+^FO835,50^FDTag:^FS
+^FO900,50
+^SN1,1
+^FD# / ${printCount}^FS
 
 ^FX ==========================
 ^FX QR Code
@@ -262,7 +272,7 @@ app.post('/print', async (req, res) => {
 ^FO730,700^FD${p.Uneg || '-'}^FS
 
 ^FX ==========================
-^FX วางข้อมูล Item
+^FX Item Data
 ^FX ==========================
 ^CF0,35
 ^FO70,725^FD${p.ProductionDate || '-'}^FS
@@ -279,7 +289,7 @@ app.post('/print', async (req, res) => {
 ^FO710,255^FD${p.InputData || '-'}^FS
 
 ^FX ==========================
-^FX Test 90 / 180 / 270 / 365 Day
+^FX Test Period
 ^FX ==========================
 ^CF0,35
 ^FO150,300^FDTest 90 Day : ${p.Test1 || '-'}^FS
@@ -288,16 +298,8 @@ app.post('/print', async (req, res) => {
 ^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
 ^FO40,180^FD${p.Remark || '-'}^FS
 
-^FX ==========================
-^FX Serial Number (มุมล่างขวา)
-^FX ==========================
-^FO830,710^GB260,55,3^FS
-^CF0,30
-^FO850,720
-^SN1,1
-^FDใบที่ # / ${printCount}^FS
-
 ^XZ
+
 `;
 
     console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zplWithQuantity);
