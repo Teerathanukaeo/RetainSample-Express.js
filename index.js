@@ -232,12 +232,6 @@ app.post('/print', async (req, res) => {
 ^FX ==========================
 ^SN1,1,Y
 ^FX ==========================
-^FX Define Fields
-^FX ==========================
-^FN1^FDTag ^FS
-^FN2^SN^FS
-^FN3^FD/${printCount}^FS
-^FX ==========================
 ^FX Draw Frames
 ^FX ==========================
 ^FO15,15^GB1086,750,5^FS
@@ -264,9 +258,11 @@ app.post('/print', async (req, res) => {
 ^FX TAG (Top Right)
 ^FX ==========================
 ^CF0,30
-^FO960,30^XFN1^FS
-^FO1020,30^XFN2^FS
-^FO1050,30^XFN3^FS
+^FO960,30^FDTag ^FS
+^CF0,30
+^FO1020,30^SN^FS
+^CF0,30
+^FO1050,30^FD/${printCount}^FS
 ^FX ==========================
 ^FX QR Code
 ^FX ==========================
