@@ -262,8 +262,8 @@ app.post('/print', async (req, res) => {
 ^FX TAG (Top Right - No Frame)
 ^FX ==========================
 ^CF0,30
-^FO865,50^FDTag:^FS
-^FO935,50
+^FO940,30^FDTag:^FS
+^FO1000,30
 ^SN1,1
 ^FD#/${printCount}^FS
 
