@@ -228,43 +228,42 @@ app.post('/print', async (req, res) => {
 ^CF0,45
 ^PQ${printCount},0,1,Y
 
-// ==========================
-// วาดตาราง
-// ==========================
+^FX ==========================
+^FX วาดตาราง
+^FX ==========================
 ^FO15,15^GB1086,750,5^FS
 ^FO15,15^GB635,220,5^FS
 ^FO645,15^GB455,150,5^FS
 ^FO645,160^GB455,160,5^FS
-^FO15,665^GB635,100,5^FS
 ^FO15,540^GB635,130,5^FS
+^FO15,665^GB635,100,5^FS
 ^FO645,314^GB455,450,5^FS
 
-// ==========================
-// วางข้อความฟิลด์
-// ==========================
+^FX ==========================
+^FX วางข้อความหัวฟิลด์
+^FX ==========================
 ^CF0,30
-^FO25,30^FDProductName^FS
-^FO655,30^FDChemicalType^FS
+^FO25,30^FDProduct Name^FS
+^FO655,30^FDChemical Type^FS
 ^FO655,175^FDInput by^FS
-^FO25,680^FDProductionDate^FS
-^FO340,680^FDExpireDate^FS
-^FO25,555^FDLocationKeep^FS
-^FO340,555^FDLocationWaste^FS
+^FO25,555^FDLocation Keep^FS
+^FO340,555^FDLocation Waste^FS
+^FO25,680^FDProduction Date^FS
+^FO340,680^FDExpire Date^FS
 
-// ==========================
-// QR Code
-// ==========================
+^FX ==========================
+^FX QR Code
+^FX ==========================
 ^FO710,330
 ^BQN,2,16
-^FDLA,${p.Uneg}^FS
+^FDLA,${p.Uneg || '-'}^FS
 
 ^CF0,35
-^FO730,700
-^FD${p.Uneg}^FS
+^FO730,700^FD${p.Uneg || '-'}^FS
 
-// ==========================
-// วางข้อมูล Item
-// ==========================
+^FX ==========================
+^FX วางข้อมูล Item
+^FX ==========================
 ^CF0,35
 ^FO70,725^FD${p.ProductionDate || '-'}^FS
 ^FO390,725^FD${p.ExpireDate || '-'}^FS
@@ -279,23 +278,24 @@ app.post('/print', async (req, res) => {
 ^FO710,100^FD${p.ChemicalType || '-'}^FS
 ^FO710,255^FD${p.InputData || '-'}^FS
 
-// ==========================
-// Test 90 / 180 / 270 / 365 Day
-// ==========================
+^FX ==========================
+^FX Test 90 / 180 / 270 / 365 Day
+^FX ==========================
 ^CF0,35
-^FO150,300^FDTest 90 Day: ${p.Test1 || '-'}^FS
+^FO150,300^FDTest 90 Day : ${p.Test1 || '-'}^FS
 ^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
 ^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
 ^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
 ^FO40,180^FD${p.Remark || '-'}^FS
 
-// ==========================
-// แสดงเลขใบ (Serial Number)
-// ==========================
-^CF0,35
-^FO850,740
+^FX ==========================
+^FX Serial Number (มุมล่างขวา)
+^FX ==========================
+^FO830,710^GB260,55,3^FS
+^CF0,30
+^FO850,720
 ^SN1,1
-^FDใบที่ \\# / ${printCount}^FS
+^FDใบที่ # / ${printCount}^FS
 
 ^XZ
 `;
@@ -340,11 +340,13 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("00 09 * * *", async () => {
+cron.schedule("40 10 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
-    // Query SQL เอาข้อมูลทั้งหมด
+    // ==========================
+    // Query SQL
+    // ==========================
     const result = await sql.query(`
       SELECT [Uneg],[ProductName],[ChemicalType],[ChemicalPhysic],
              [ProductionDate],[Alert],[ExpireDate],[LocationKeep],
@@ -358,12 +360,40 @@ cron.schedule("00 09 * * *", async () => {
     const data = result.recordset;
 
     // ==========================
-    // 1) ใกล้ถึงกำหนดทิ้ง (ตาม Alert)
+    // ฟังก์ชันเช็กวันนี้
     // ==========================
-    const discardList = data.filter(item => isToday(item.Alert));
+    function isToday(date) {
+      if (!date) return false;
+      const d = new Date(date);
+      const t = new Date();
+      d.setHours(0,0,0,0);
+      t.setHours(0,0,0,0);
+      return d.getTime() === t.getTime();
+    }
 
     // ==========================
-    // 2) ใกล้ถึงกำหนดทดสอบ (Test Alerts)
+    // ฟังก์ชันเช็กค้างกำจัด
+    // ==========================
+    function isOverdue(date) {
+      if (!date) return false;
+      const d = new Date(date);
+      const t = new Date();
+      d.setHours(0,0,0,0);
+      t.setHours(0,0,0,0);
+      return d.getTime() < t.getTime();
+    }
+
+    // ==========================
+    // 1) รายการทิ้ง (วันนี้ + ค้างกำจัด)
+    // ==========================
+    const discardList = data.filter(item =>
+      item.Alert &&
+      item.Status !== "END" &&
+      (isToday(item.Alert) || isOverdue(item.Alert))
+    );
+
+    // ==========================
+    // 2) รายการทดสอบ (เหมือนเดิม)
     // ==========================
     const testList = data.filter(item =>
       isToday(item.AlertTest1) ||
@@ -372,26 +402,29 @@ cron.schedule("00 09 * * *", async () => {
       isToday(item.AlertTest4)
     );
 
-    console.log("📌 รายการทิ้งวันนี้:", discardList.length);
+    console.log("📌 รายการทิ้ง (รวมค้าง):", discardList.length);
     console.log("🧪 รายการทดสอบวันนี้:", testList.length);
 
     // ==========================
-    // ถ้าไม่มีทั้งสองแบบ → ไม่ต้องส่งเมล
+    // ไม่มีอะไรเลย → ไม่ส่งเมล
     // ==========================
     if (discardList.length === 0 && testList.length === 0) {
-      console.log("⭕ วันนี้ไม่มี Alert หรือ Test — ไม่ส่งเมล");
+      console.log("⭕ วันนี้ไม่มี Alert / Overdue / Test");
       return;
     }
 
     // ==========================
-    // ฟังก์ชันสร้างตาราง HTML สำหรับทิ้ง
+    // ตารางรายการทิ้ง
     // ==========================
     function createDiscardTable(rows) {
-      if (rows.length === 0) return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (Alert)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+      if (rows.length === 0)
+        return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง</h3><p>— ไม่มีรายการ —</p>`;
+
       let html = `
-        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง</h3>
-        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
-          <tr style="background:#0078D7; color:white;">
+        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง / ค้างกำจัด</h3>
+        <table border="1" cellspacing="0" cellpadding="6"
+          style="border-collapse: collapse; font-family: Arial;">
+          <tr style="background:#C00000; color:white;">
             <th>Uneg</th>
             <th>ProductName</th>
             <th>ChemicalType</th>
@@ -399,9 +432,12 @@ cron.schedule("00 09 * * *", async () => {
             <th>วันหมดอายุ</th>
             <th>สถานที่จัดเก็บ</th>
             <th>สถานที่ทิ้ง</th>
+            <th>สถานะ</th>
           </tr>
       `;
+
       rows.forEach(item => {
+        const overdue = isOverdue(item.Alert);
         html += `
           <tr>
             <td>${item.Uneg ?? "-"}</td>
@@ -411,21 +447,28 @@ cron.schedule("00 09 * * *", async () => {
             <td>${formatDate(item.ExpireDate)}</td>
             <td>${item.LocationKeep ?? "-"}</td>
             <td>${item.LocationWaste ?? "-"}</td>
+            <td style="color:${overdue ? "red" : "black"}; font-weight:bold;">
+              ${overdue ? "⚠️ ค้างกำจัด" : "วันนี้ต้องทิ้ง"}
+            </td>
           </tr>
         `;
       });
+
       html += "</table>";
       return html;
     }
 
     // ==========================
-    // ฟังก์ชันสร้างตาราง HTML สำหรับทดสอบ
+    // ตารางรายการทดสอบ
     // ==========================
     function createTestTable(rows) {
-      if (rows.length === 0) return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (Test Alerts)</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+      if (rows.length === 0)
+        return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+
       let html = `
         <h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ</h3>
-        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; font-family: Arial;">
+        <table border="1" cellspacing="0" cellpadding="6"
+          style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
             <th>Uneg</th>
             <th>ProductName</th>
@@ -436,10 +479,9 @@ cron.schedule("00 09 * * *", async () => {
             <th>ทดสอบ 2</th>
             <th>ทดสอบ 3</th>
             <th>ทดสอบ 4</th>
-            <th>สถานที่จัดเก็บ</th>
-            <th>สถานที่ทิ้ง</th>
           </tr>
       `;
+
       rows.forEach(item => {
         html += `
           <tr>
@@ -452,17 +494,16 @@ cron.schedule("00 09 * * *", async () => {
             <td>${formatDate(item.Test2)}</td>
             <td>${formatDate(item.Test3)}</td>
             <td>${formatDate(item.Test4)}</td>
-            <td>${item.LocationKeep ?? "-"}</td>
-            <td>${item.LocationWaste ?? "-"}</td>
           </tr>
         `;
       });
+
       html += "</table>";
       return html;
     }
 
     // ==========================
-    // สร้าง HTML Email รวม
+    // HTML Email
     // ==========================
     const emailHtml = `
       <div style="font-family: Arial; padding: 10px;">
@@ -475,24 +516,24 @@ cron.schedule("00 09 * * *", async () => {
     // ==========================
     // ส่งเมล
     // ==========================
-    const mailOptions = {
+    await transporter.sendMail({
       from: "es1_auto@thaiparker.co.th",
       to: [
         "Krongkarn@thaiparker.co.th",
         "Mantana@thaiparker.co.th",
         "Teera@thaiparker.co.th"
       ],
-      subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง & ทดสอบ)",
-      html: emailHtml,
-    };
+      subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง / ค้างกำจัด / ทดสอบ)",
+      html: emailHtml
+    });
 
-    await transporter.sendMail(mailOptions);
     console.log("✅ ส่งเมลสำเร็จ");
 
   } catch (err) {
     console.error("❌ CRON ERROR:", err);
   }
 });
+
 
 
 
