@@ -226,7 +226,7 @@ app.post('/print', async (req, res) => {
 ^PW1116
 ^LL780
 ^CF0,45
-^PQ${printCount},0,1,Y
+^PQ2,0,1,Y
 
 ^FX ==========================
 ^FX Draw Frames
@@ -244,6 +244,7 @@ app.post('/print', async (req, res) => {
 ^FO15,665^GB635,100,5^FS
 ^FO332,665^GB5,100,5^FS
 
+^FX QR Area
 ^FO645,314^GB455,450,5^FS
 
 ^FX ==========================
@@ -259,52 +260,51 @@ app.post('/print', async (req, res) => {
 ^FO340,680^FDExpire Date^FS
 
 ^FX ==========================
-^FX TAG (Top Right - No Frame)
+^FX TAG (Top Right – No Frame)
 ^FX ==========================
 ^CF0,30
-^FO940,30
+^FO960,30
 ^SN1,1
-^FDTag #/${printCount}^FS
+^FDTag #/##^FS
 
 ^FX ==========================
 ^FX QR Code
 ^FX ==========================
 ^FO710,330
 ^BQN,2,16
-^FDLA,${p.Uneg || '-'}^FS
+^FDLA,UNEG1765266759608^FS
 
 ^CF0,35
-^FO730,700^FD${p.Uneg || '-'}^FS
+^FO730,700^FDUNEG1765266759608^FS
 
 ^FX ==========================
 ^FX Item Data
 ^FX ==========================
 ^CF0,35
-^FO70,725^FD${p.ProductionDate || '-'}^FS
-^FO390,725^FD${p.ExpireDate || '-'}^FS
-^FO70,620^FD${p.LocationKeep || '-'}^FS
+^FO70,725^FD2025-12-09^FS
+^FO390,725^FD2026-06-07^FS
+^FO70,620^FDRetain Room^FS
 
 ^FO370,590
 ^FB250,2,0,L,0
-^FD${p.LocationWaste || '-'}^FS
+^FDIBC for Used Oil^FS
 
 ^CF0,60
-^FO40,100^FD${p.ProductName || '-'}^FS
-^FO710,100^FD${p.ChemicalType || '-'}^FS
-^FO710,255^FD${p.InputData || '-'}^FS
+^FO40,100^FDFR-169TFt^FS
+^FO710,100^FDNox Rust^FS
+^FO710,255^FDmantana^FS
 
 ^FX ==========================
 ^FX Test Period
 ^FX ==========================
 ^CF0,35
-^FO150,300^FDTest 90 Day : ${p.Test1 || '-'}^FS
-^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
-^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
-^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
-^FO40,180^FD${p.Remark || '-'}^FS
+^FO150,300^FDTest 90 Day : -^FS
+^FO150,350^FDTest 180 Day: -^FS
+^FO150,400^FDTest 270 Day: -^FS
+^FO150,450^FDTest 365 Day: -^FS
+^FO40,180^FDBatch 3^FS
 
 ^XZ
-
 
 `;
 
