@@ -227,7 +227,6 @@ app.post('/print', async (req, res) => {
 ^LL780
 ^CF0,45
 ^PQ2,0,1,Y
-
 ^FX ==========================
 ^FX Draw Frames
 ^FX ==========================
@@ -235,15 +234,11 @@ app.post('/print', async (req, res) => {
 ^FO15,15^GB635,220,5^FS
 ^FO645,15^GB455,150,5^FS
 ^FO645,160^GB455,160,5^FS
-
 ^FO15,540^GB635,130,5^FS
 ^FO332,540^GB5,130,5^FS
-
 ^FO15,665^GB635,100,5^FS
 ^FO332,665^GB5,100,5^FS
-
 ^FO645,314^GB455,450,5^FS
-
 ^FX ==========================
 ^FX Field Titles
 ^FX ==========================
@@ -255,26 +250,21 @@ app.post('/print', async (req, res) => {
 ^FO340,555^FDLocation Waste^FS
 ^FO25,680^FDProduction Date^FS
 ^FO340,680^FDExpire Date^FS
-
 ^FX ==========================
-^FX TAG (Top Right – FIXED)
+^FX TAG (Top Right)
 ^FX ==========================
 ^CF0,30
 ^FO960,30
-^SN1,1
-^FDTag ^SN/2^FS
-^SN
-
+^SN1,1,Y
+^FDTag ^SF^FS
 ^FX ==========================
 ^FX QR Code
 ^FX ==========================
 ^FO710,330
 ^BQN,2,16
 ^FDLA,UNEG1765266759608^FS
-
 ^CF0,35
 ^FO730,700^FDUNEG1765266759608^FS
-
 ^FX ==========================
 ^FX Item Data
 ^FX ==========================
@@ -282,16 +272,13 @@ app.post('/print', async (req, res) => {
 ^FO70,725^FD2025-12-09^FS
 ^FO390,725^FD2026-06-07^FS
 ^FO70,620^FDRetain Room^FS
-
 ^FO370,590
 ^FB250,2,0,L,0
 ^FDIBC for Used Oil^FS
-
 ^CF0,60
 ^FO40,100^FDFR-169TFt^FS
 ^FO710,100^FDNox Rust^FS
 ^FO710,255^FDmantana^FS
-
 ^FX ==========================
 ^FX Test Period
 ^FX ==========================
@@ -301,9 +288,7 @@ app.post('/print', async (req, res) => {
 ^FO150,400^FDTest 270 Day: -^FS
 ^FO150,450^FDTest 365 Day: -^FS
 ^FO40,180^FDBatch 3^FS
-
 ^XZ
-
 `;
 
     console.log("📤 ZPL string ที่จะส่งไปเครื่องพิมพ์:\n", zplWithQuantity);
