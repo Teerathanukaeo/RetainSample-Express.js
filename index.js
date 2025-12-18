@@ -337,7 +337,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("45 15 * * *", async () => {
+cron.schedule("00 16 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -369,7 +369,7 @@ cron.schedule("45 15 * * *", async () => {
     }
 
     // ==========================
-    // ฟังก์ชันเช็กค้างกำจัด
+    // ฟังก์ชันเช็กเลยกำหนด
     // ==========================
     function isOverdue(date) {
       if (!date) return false;
@@ -381,16 +381,25 @@ cron.schedule("45 15 * * *", async () => {
     }
 
     // ==========================
-    // 1) รายการทิ้ง (วันนี้ + ค้างกำจัด)
+    // 1) รายการเลย ExpireDate แล้ว (ยังไม่ได้ทิ้ง)
     // ==========================
-    const discardList = data.filter(item =>
-      item.Alert &&
+    const expiredList = data.filter(item =>
+      item.ExpireDate &&
       item.Status !== "END" &&
-      (isToday(item.Alert) || isOverdue(item.Alert))
+      isOverdue(item.ExpireDate)
     );
 
     // ==========================
-    // 2) รายการทดสอบ (เหมือนเดิม)
+    // 2) รายการใกล้ถึง Alert (กำลังจะทิ้งวันนี้)
+    // ==========================
+    const discardTodayList = data.filter(item =>
+      item.Alert &&
+      item.Status !== "END" &&
+      isToday(item.Alert)
+    );
+
+    // ==========================
+    // 3) รายการทดสอบวันนี้
     // ==========================
     const testList = data.filter(item =>
       isToday(item.AlertTest1) ||
@@ -399,29 +408,30 @@ cron.schedule("45 15 * * *", async () => {
       isToday(item.AlertTest4)
     );
 
-    console.log("📌 รายการทิ้ง (รวมค้าง):", discardList.length);
+    console.log("⚠️ รายการเลยหมดอายุ (ยังไม่ทิ้ง):", expiredList.length);
+    console.log("📌 รายการใกล้ทิ้งวันนี้:", discardTodayList.length);
     console.log("🧪 รายการทดสอบวันนี้:", testList.length);
 
     // ==========================
     // ไม่มีอะไรเลย → ไม่ส่งเมล
     // ==========================
-    if (discardList.length === 0 && testList.length === 0) {
-      console.log("⭕ วันนี้ไม่มี Alert / Overdue / Test");
+    if (expiredList.length === 0 && discardTodayList.length === 0 && testList.length === 0) {
+      console.log("⭕ วันนี้ไม่มี Alert ใดๆ");
       return;
     }
 
     // ==========================
-    // ตารางรายการทิ้ง
+    // ตารางรายการเลยหมดอายุ (ค้างทิ้ง)
     // ==========================
-    function createDiscardTable(rows) {
+    function createExpiredTable(rows) {
       if (rows.length === 0)
-        return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง</h3><p>— ไม่มีรายการ —</p>`;
+        return `<h3>⚠️ รายการที่เลยหมดอายุแล้ว (ยังไม่ได้ทิ้ง)</h3><p>— ไม่มีรายการ —</p>`;
 
       let html = `
-        <h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง / ค้างกำจัด</h3>
+        <h3 style="color: #D9534F;">⚠️ รายการที่เลยหมดอายุแล้ว (ยังไม่ได้ทิ้ง)</h3>
         <table border="1" cellspacing="0" cellpadding="6"
           style="border-collapse: collapse; font-family: Arial;">
-          <tr style="background:#C00000; color:white;">
+          <tr style="background:#D9534F; color:white;">
             <th>Uneg</th>
             <th>ProductName</th>
             <th>ChemicalType</th>
@@ -434,19 +444,17 @@ cron.schedule("45 15 * * *", async () => {
       `;
 
       rows.forEach(item => {
-        const overdue = isOverdue(item.Alert);
+        const daysOverdue = Math.floor((new Date() - new Date(item.ExpireDate)) / (1000 * 60 * 60 * 24));
         html += `
-          <tr>
+          <tr style="background:#FFE6E6;">
             <td>${item.Uneg ?? "-"}</td>
             <td>${item.ProductName ?? "-"}</td>
             <td>${item.ChemicalType ?? "-"}</td>
             <td>${formatDate(item.ProductionDate)}</td>
-            <td>${formatDate(item.ExpireDate)}</td>
+            <td style="color:red; font-weight:bold;">${formatDate(item.ExpireDate)}</td>
             <td>${item.LocationKeep ?? "-"}</td>
             <td>${item.LocationWaste ?? "-"}</td>
-            <td style="color:${overdue ? "red" : "black"}; font-weight:bold;">
-              ${overdue ? "⚠️ ค้างกำจัด" : "วันนี้ต้องทิ้ง"}
-            </td>
+            <td style="color:red; font-weight:bold;">เลย ${daysOverdue} วัน</td>
           </tr>
         `;
       });
@@ -456,14 +464,56 @@ cron.schedule("45 15 * * *", async () => {
     }
 
     // ==========================
-    // ตารางรายการทดสอบ
+    // ตารางรายการใกล้ทิ้งวันนี้
+    // ==========================
+    function createDiscardTodayTable(rows) {
+      if (rows.length === 0)
+        return `<h3>📌 รายการที่ใกล้ถึงกำหนดทิ้ง (วันนี้)</h3><p>— ไม่มีรายการ —</p>`;
+
+      let html = `
+        <h3 style="color: #F0AD4E;">📌 รายการที่ใกล้ถึงกำหนดทิ้ง (วันนี้)</h3>
+        <table border="1" cellspacing="0" cellpadding="6"
+          style="border-collapse: collapse; font-family: Arial;">
+          <tr style="background:#F0AD4E; color:white;">
+            <th>Uneg</th>
+            <th>ProductName</th>
+            <th>ChemicalType</th>
+            <th>วันผลิต</th>
+            <th>วันหมดอายุ</th>
+            <th>สถานที่จัดเก็บ</th>
+            <th>สถานที่ทิ้ง</th>
+            <th>สถานะ</th>
+          </tr>
+      `;
+
+      rows.forEach(item => {
+        html += `
+          <tr style="background:#FFF4E6;">
+            <td>${item.Uneg ?? "-"}</td>
+            <td>${item.ProductName ?? "-"}</td>
+            <td>${item.ChemicalType ?? "-"}</td>
+            <td>${formatDate(item.ProductionDate)}</td>
+            <td>${formatDate(item.ExpireDate)}</td>
+            <td>${item.LocationKeep ?? "-"}</td>
+            <td>${item.LocationWaste ?? "-"}</td>
+            <td style="color:#F0AD4E; font-weight:bold;">วันนี้ต้องทิ้ง</td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+      return html;
+    }
+
+    // ==========================
+    // ตารางรายการทดสอบวันนี้
     // ==========================
     function createTestTable(rows) {
       if (rows.length === 0)
-        return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ</h3><p>— ไม่มีรายการวันนี้ —</p>`;
+        return `<h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (วันนี้)</h3><p>— ไม่มีรายการ —</p>`;
 
       let html = `
-        <h3>🧪 รายการที่ใกล้ถึงกำหนดทดสอบ</h3>
+        <h3 style="color: #0078D7;">🧪 รายการที่ใกล้ถึงกำหนดทดสอบ (วันนี้)</h3>
         <table border="1" cellspacing="0" cellpadding="6"
           style="border-collapse: collapse; font-family: Arial;">
           <tr style="background:#0078D7; color:white;">
@@ -481,16 +531,16 @@ cron.schedule("45 15 * * *", async () => {
 
       rows.forEach(item => {
         html += `
-          <tr>
+          <tr style="background:#E6F3FF;">
             <td>${item.Uneg ?? "-"}</td>
             <td>${item.ProductName ?? "-"}</td>
             <td>${item.ChemicalType ?? "-"}</td>
             <td>${formatDate(item.ProductionDate)}</td>
             <td>${formatDate(item.ExpireDate)}</td>
-            <td>${formatDate(item.Test1)}</td>
-            <td>${formatDate(item.Test2)}</td>
-            <td>${formatDate(item.Test3)}</td>
-            <td>${formatDate(item.Test4)}</td>
+            <td style="${isToday(item.AlertTest1) ? 'background:#FFD700; font-weight:bold;' : ''}">${formatDate(item.Test1)}</td>
+            <td style="${isToday(item.AlertTest2) ? 'background:#FFD700; font-weight:bold;' : ''}">${formatDate(item.Test2)}</td>
+            <td style="${isToday(item.AlertTest3) ? 'background:#FFD700; font-weight:bold;' : ''}">${formatDate(item.Test3)}</td>
+            <td style="${isToday(item.AlertTest4) ? 'background:#FFD700; font-weight:bold;' : ''}">${formatDate(item.Test4)}</td>
           </tr>
         `;
       });
@@ -504,7 +554,9 @@ cron.schedule("45 15 * * *", async () => {
     // ==========================
     const emailHtml = `
       <div style="font-family: Arial; padding: 10px;">
-        ${createDiscardTable(discardList)}
+        ${createExpiredTable(expiredList)}
+        <br><hr><br>
+        ${createDiscardTodayTable(discardTodayList)}
         <br><hr><br>
         ${createTestTable(testList)}
       </div>
@@ -520,7 +572,7 @@ cron.schedule("45 15 * * *", async () => {
         // "Mantana@thaiparker.co.th",
         "Teera@thaiparker.co.th"
       ],
-      subject: "📩 รายงาน Alert ประจำวัน (กำหนดทิ้ง / ค้างกำจัด / ทดสอบ)",
+      subject: "📩 รายงาน Alert ประจำวัน (เลยหมดอายุ / ใกล้ทิ้ง / ทดสอบ)",
       html: emailHtml
     });
 
