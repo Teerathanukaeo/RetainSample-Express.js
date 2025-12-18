@@ -235,8 +235,15 @@ app.post('/print', async (req, res) => {
 ^FO15,15^GB635,220,5^FS
 ^FO645,15^GB455,150,5^FS
 ^FO645,160^GB455,160,5^FS
+
+^FX Location Keep / Waste
 ^FO15,540^GB635,130,5^FS
+^FO332,540^GB5,130,5^FS
+
+^FX Production / Expire Date
 ^FO15,665^GB635,100,5^FS
+^FO332,665^GB5,100,5^FS
+
 ^FO645,314^GB455,450,5^FS
 
 ^FX ==========================
@@ -246,20 +253,20 @@ app.post('/print', async (req, res) => {
 ^FO25,30^FDProduct Name^FS
 ^FO655,30^FDChemical Type^FS
 ^FO655,175^FDInput by^FS
-^FO25,680^FDProduction Date^FS
-^FO340,680^FDExpire Date^FS
 ^FO25,555^FDLocation Keep^FS
 ^FO340,555^FDLocation Waste^FS
+^FO25,680^FDProduction Date^FS
+^FO340,680^FDExpire Date^FS
 
 ^FX ==========================
-^FX TAG (Top Right Empty Area)
+^FX TAG (Top Right)  --> 1/2 , 2/2
 ^FX ==========================
 ^FO820,35^GB260,55,3^FS
 ^CF0,30
 ^FO835,50^FDTag:^FS
 ^FO900,50
 ^SN1,1
-^FD# / ${printCount}^FS
+^FD#/${printCount}^FS
 
 ^FX ==========================
 ^FX QR Code
