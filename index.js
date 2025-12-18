@@ -262,10 +262,9 @@ app.post('/print', async (req, res) => {
 ^FX TAG (Top Right - No Frame)
 ^FX ==========================
 ^CF0,30
-^FO940,30^FDTag:^FS
-^FO1000,30
+^FO940,30
 ^SN1,1
-^FD#/${printCount}^FS
+^FDTag #/${printCount}^FS
 
 ^FX ==========================
 ^FX QR Code
@@ -305,6 +304,7 @@ app.post('/print', async (req, res) => {
 ^FO40,180^FD${p.Remark || '-'}^FS
 
 ^XZ
+
 
 `;
 
