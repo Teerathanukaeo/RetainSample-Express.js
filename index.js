@@ -226,17 +226,11 @@ app.post('/print', async (req, res) => {
 ^PW1116
 ^LL780
 ^CF0,45
-^PQ${printCount},0,1,Y
+^PQ2,0,1,Y
 ^FX ==========================
 ^FX Setup Serial Number
 ^FX ==========================
 ^SN1,1,Y
-^FX ==========================
-^FX Define Fields
-^FX ==========================
-^FN1^FDTag ^FS
-^FN2^SN^FS
-^FN3^FD/${printCount}^FS
 ^FX ==========================
 ^FX Draw Frames
 ^FX ==========================
@@ -261,43 +255,43 @@ app.post('/print', async (req, res) => {
 ^FO25,680^FDProduction Date^FS
 ^FO340,680^FDExpire Date^FS
 ^FX ==========================
-^FX TAG (Top Right - Using Field Number)
+^FX TAG (Top Right)
 ^FX ==========================
 ^CF0,30
-^FO900,30^XFN1^FS
-^FO980,30^XFN2^FS
-^FO1020,30^XFN3^FS
+^FO960,30^FDTag ^FS
+^FO1030,30^SN^FS
+^FO1060,30^FD/2^FS
 ^FX ==========================
 ^FX QR Code
 ^FX ==========================
 ^FO710,330
 ^BQN,2,16
-^FDLA,${p.Uneg}^FS
+^FDLA,UNEG1765266759608^FS
 ^CF0,35
-^FO730,700^FD${p.Uneg}^FS
+^FO730,700^FDUNEG1765266759608^FS
 ^FX ==========================
 ^FX Item Data
 ^FX ==========================
 ^CF0,35
-^FO70,725^FD${p.ProductionDate || '2025-12-09'}^FS
-^FO390,725^FD${p.ExpireDate || '2026-06-07'}^FS
-^FO70,620^FD${p.LocationKeep || 'Retain Room'}^FS
+^FO70,725^FD2025-12-09^FS
+^FO390,725^FD2026-06-07^FS
+^FO70,620^FDRetain Room^FS
 ^FO370,590
 ^FB250,2,0,L,0
-^FD${p.LocationWaste || 'IBC for Used Oil'}^FS
+^FDIBC for Used Oil^FS
 ^CF0,60
-^FO40,100^FD${p.ProductName || 'FR-169TFt'}^FS
-^FO710,100^FD${p.ChemicalType || 'Nox Rust'}^FS
-^FO710,255^FD${p.InputBy || 'mantana'}^FS
+^FO40,100^FDFR-169TFt^FS
+^FO710,100^FDNox Rust^FS
+^FO710,255^FDmantana^FS
 ^FX ==========================
 ^FX Test Period
 ^FX ==========================
 ^CF0,35
-^FO150,300^FDTest 90 Day : ${p.Test90 || '-'}^FS
-^FO150,350^FDTest 180 Day: ${p.Test180 || '-'}^FS
-^FO150,400^FDTest 270 Day: ${p.Test270 || '-'}^FS
-^FO150,450^FDTest 365 Day: ${p.Test365 || '-'}^FS
-^FO40,180^FD${p.Batch || 'Batch 3'}^FS
+^FO150,300^FDTest 90 Day : -^FS
+^FO150,350^FDTest 180 Day: -^FS
+^FO150,400^FDTest 270 Day: -^FS
+^FO150,450^FDTest 365 Day: -^FS
+^FO40,180^FDBatch 3^FS
 ^XZ
 `;
 
