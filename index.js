@@ -337,7 +337,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("14 16 * * *", async () => {
+cron.schedule("00 09 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -496,7 +496,7 @@ cron.schedule("14 16 * * *", async () => {
             <td>${formatDate(item.ExpireDate)}</td>
             <td>${item.LocationKeep ?? "-"}</td>
             <td>${item.LocationWaste ?? "-"}</td>
-            <td style="color:#F0AD4E; font-weight:bold;">วันนี้ต้องทิ้ง</td>
+            <td style="color:#F0AD4E; font-weight:bold;">ทิ้งพรุ่งนี้</td>
           </tr>
         `;
       });
@@ -568,8 +568,8 @@ cron.schedule("14 16 * * *", async () => {
     await transporter.sendMail({
       from: "es1_auto@thaiparker.co.th",
       to: [
-        // "Krongkarn@thaiparker.co.th",
-        // "Mantana@thaiparker.co.th",
+        "Krongkarn@thaiparker.co.th",
+        "Mantana@thaiparker.co.th",
         "Teera@thaiparker.co.th"
       ],
       subject: "📩 รายงาน Alert ประจำวัน (เลยหมดอายุ / ใกล้ทิ้ง / ทดสอบ)",
