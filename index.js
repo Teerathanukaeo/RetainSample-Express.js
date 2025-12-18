@@ -337,7 +337,7 @@ const transporter = nodemailer.createTransport({
   tls: { ciphers: "SSLv3" }
 });
 
-cron.schedule("00 16 * * *", async () => {
+cron.schedule("06 16 * * *", async () => {
   try {
     console.log("🚀 เริ่มทำงาน CRON 09:00 น.");
 
@@ -385,7 +385,7 @@ cron.schedule("00 16 * * *", async () => {
     // ==========================
     const expiredList = data.filter(item =>
       item.ExpireDate &&
-      item.Status !== "END" &&
+      item.Status === "Inprocess" &&  // ✅ เฉพาะ Inprocess เท่านั้น
       isOverdue(item.ExpireDate)
     );
 
