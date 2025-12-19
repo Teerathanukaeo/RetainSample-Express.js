@@ -289,10 +289,10 @@ app.post('/print', async (req, res) => {
 ^FX Test Period
 ^FX ==========================
 ^CF0,35
-^FO150,300^FDTest 90 Day : ${p.Test90 || '-'}^FS
-^FO150,350^FDTest 180 Day: ${p.Test180 || '-'}^FS
-^FO150,400^FDTest 270 Day: ${p.Test270 || '-'}^FS
-^FO150,450^FDTest 365 Day: ${p.Test365 || '-'}^FS
+^FO150,300^FDTest 90 Day : ${p.Test1 || '-'}^FS
+^FO150,350^FDTest 180 Day: ${p.Test2 || '-'}^FS
+^FO150,400^FDTest 270 Day: ${p.Test3 || '-'}^FS
+^FO150,450^FDTest 365 Day: ${p.Test4 || '-'}^FS
 ^FO40,180^FD${p.Remark || '-'}^FS
 ^XZ
 `;
